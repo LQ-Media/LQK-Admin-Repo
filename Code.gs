@@ -309,7 +309,7 @@ const HEADERS = ['Day', 'Date', 'Weekday', 'Pillar', 'Job', 'Format',
 const META_EVENT = 'lqk_event_id';
 const META_FOCUS = 'lqk_focus';
 
-// Opens the setup form. The form calls buildCalendar_() on submit.
+// Opens the setup form. The form calls buildCalendar() on submit.
 function setupSheet() {
   const html = HtmlService.createHtmlOutput(buildSetupHtml_())
     .setWidth(440).setHeight(620);
@@ -497,8 +497,9 @@ function buildSetupHtml_() {
 </body></html>`;
 }
 
-// Called from the dialog. Builds the versioned calendar tab.
-function buildCalendar_(form) {
+// Called from the dialog (must NOT end in "_" so google.script.run can reach it).
+// Builds the versioned calendar tab.
+function buildCalendar(form) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const tz = ss.getSpreadsheetTimeZone();
 
