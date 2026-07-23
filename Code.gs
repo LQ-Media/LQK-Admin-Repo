@@ -27,13 +27,21 @@
 
 // ─────────────────────────  CONFIG  ─────────────────────────
 const CONFIG = {
-  MODEL: 'claude-sonnet-4-6',
+  MODEL: 'claude-sonnet-4-6',    // default model; override via "Set generation model"
   DEFAULT_DAYS: 30,
   MAX_DAYS: 60,
   DELAY_MS: 3000,                // Pause between API calls
   BRAND_COLOR: '#B4571C',
-  API_KEY_PROP: 'ANTHROPIC_API_KEY'   // key name in Script Properties
+  API_KEY_PROP: 'ANTHROPIC_API_KEY',  // key name in Script Properties
+  MODEL_PROP: 'ANTHROPIC_MODEL'       // chosen model in Script Properties
 };
+
+// Models offered by the "Set generation model" menu item.
+const MODEL_CHOICES = [
+  'claude-sonnet-4-6',
+  'claude-opus-4-8',
+  'claude-haiku-4-5-20251001'
+];
 
 // ───────────────────────  BRAND BRIEF  ──────────────────────
 // This is sent to Claude with every generation request.
@@ -135,7 +143,43 @@ function pillarForDay_(dayIdx, weekNum, totalWeeks) {
 
 // ─────────────────────  TOPIC SEEDS  ────────────────────────
 // One surah per week drives P2; other pillars rotate through seed lists.
+// This is the fallback rotation when the setup surah prompt is left blank.
 const WEEK_SURAHS = ['An-Nas', 'Al-Falaq', 'Al-Ikhlas', 'Al-Kafirun', 'Al-Masad'];
+
+// Turn the Step-4 answer into a per-week surah list of length `weeks`.
+//   blank  → default rotation
+//   AUTO   → ask Claude for theme-appropriate Juz Amma surahs
+//   custom → user's comma-separated list
+// Any list shorter than `weeks` repeats its last entry (handled at read time).
+function resolveSurahs_(answer, theme, weeks) {
+  if (!answer) return WEEK_SURAHS.slice();
+  if (answer.toUpperCase() === 'AUTO') {
+    try { return getThemedSurahs_(theme, weeks); }
+    catch (e) {
+      notify_('Could not auto-pick surahs (' + String(e).slice(0, 120) +
+        '). Using the default rotation.');
+      return WEEK_SURAHS.slice();
+    }
+  }
+  const list = answer.split(',').map(s => s.trim()).filter(String);
+  return list.length ? list : WEEK_SURAHS.slice();
+}
+
+// Ask Claude for `weeks` Juz Amma surahs that suit the theme.
+function getThemedSurahs_(theme, weeks) {
+  const prompt =
+    'You are planning a Quran memorization content series for Little Quran Kids ' +
+    '(children ages 4–12, memorizing Juz Amma).' +
+    (theme ? '\nThe series theme/event is: ' + theme : '') +
+    '\nPick ' + weeks + ' surahs FROM JUZ AMMA (juz 30) that best fit this series, ' +
+    'ordered as they should appear week by week (start easier/shorter). ' +
+    'Respond with ONLY a JSON object, no markdown, no preamble: ' +
+    '{"surahs": ["Name1", "Name2", ...]} with exactly ' + weeks + ' English surah names.';
+  const obj = parseJson_(callClaude_(prompt));
+  const list = (obj.surahs || []).map(s => String(s).trim()).filter(String);
+  if (!list.length) throw new Error('empty surah list');
+  return list;
+}
 
 const SEEDS = {
   P1: ['Day 1 vs today recitation of this week\'s surah',
@@ -171,6 +215,7 @@ function onOpen() {
       .addItem('Mark selected row POSTED', 'markPosted')
       .addSeparator()
       .addItem('Set / update API key', 'setApiKey')
+      .addItem('Set generation model', 'setModel')
       .addToUi();
   } catch (e) { Logger.log('onOpen: ' + e); }
 }
@@ -209,6 +254,29 @@ function getApiKey_() {
   return key;
 }
 
+function setModel() {
+  const ui = SpreadsheetApp.getUi();
+  const current = getModel_();
+  const menu = MODEL_CHOICES.map((m, i) => (i + 1) + '. ' + m).join('\n');
+  const resp = ui.prompt(
+    'Set generation model',
+    'Current: ' + current + '\n\nType a number to choose, or paste any model ID:\n' + menu,
+    ui.ButtonSet.OK_CANCEL);
+  if (resp.getSelectedButton() !== ui.Button.OK) return;
+  let val = resp.getResponseText().trim();
+  if (!val) return;
+  const asNum = parseInt(val, 10);
+  if (!isNaN(asNum) && asNum >= 1 && asNum <= MODEL_CHOICES.length) {
+    val = MODEL_CHOICES[asNum - 1];
+  }
+  PropertiesService.getScriptProperties().setProperty(CONFIG.MODEL_PROP, val);
+  notify_('Generation model set to ' + val + '.');
+}
+
+function getModel_() {
+  return PropertiesService.getScriptProperties().getProperty(CONFIG.MODEL_PROP) || CONFIG.MODEL;
+}
+
 // ───────────────────  1. SETUP SHEET  ───────────────────────
 const HEADERS = ['Day', 'Date', 'Weekday', 'Pillar', 'Job', 'Format',
   'Filming?', 'Topic', 'Hook', 'Script / Shot List / Slides',
@@ -222,7 +290,7 @@ function setupSheet() {
 
   // ── Prompt 1: theme / event / idea ──
   const themeResp = ui.prompt(
-    'Step 1 of 3 — Theme / Event / Idea',
+    'Step 1 of 4 — Theme / Event / Idea',
     'What is this batch built around? Examples: "Ramadan 2027 prep", ' +
     '"Open house at Tampines", "Muharram / new hijri year", "Back to school".\n\n' +
     'Leave blank for a general evergreen batch.',
@@ -232,7 +300,7 @@ function setupSheet() {
 
   // ── Prompt 2: number of days ──
   const daysResp = ui.prompt(
-    'Step 2 of 3 — How many days?',
+    'Step 2 of 4 — How many days?',
     'How many days of content should I plan? (1–' + CONFIG.MAX_DAYS + ')\n\n' +
     'Leave blank for ' + CONFIG.DEFAULT_DAYS + '.',
     ui.ButtonSet.OK_CANCEL);
@@ -245,7 +313,7 @@ function setupSheet() {
   const defaultStart = nextMonday_();
   const tz = ss.getSpreadsheetTimeZone();
   const startResp = ui.prompt(
-    'Step 3 of 3 — Start date',
+    'Step 3 of 4 — Start date',
     'Day 1 date as YYYY-MM-DD.\n\n' +
     'Leave blank to use the next Monday (' +
     Utilities.formatDate(defaultStart, tz, 'dd MMM yyyy') + ').',
@@ -266,6 +334,21 @@ function setupSheet() {
     notify_('Heads up: start date is not a Monday. The weekly rhythm assumes Day 1 = Monday.');
   }
 
+  const totalWeeks = Math.ceil(days / 7);
+
+  // ── Prompt 4: surah focus for the weekly Playbook ──
+  const surahResp = ui.prompt(
+    'Step 4 of 4 — Surah focus',
+    'Which surahs drive the weekly Parent Playbook (P2)? You need ' + totalWeeks +
+    ' (one per week).\n\n' +
+    '• Leave blank for the default rotation (An-Nas, Al-Falaq, Al-Ikhlas, ' +
+    'Al-Kafirun, Al-Masad).\n' +
+    '• Type AUTO to let Claude pick surahs that fit your theme.\n' +
+    '• Or type your own, comma-separated (e.g. Al-Qadr, Al-Fil, Quraysh).',
+    ui.ButtonSet.OK_CANCEL);
+  if (surahResp.getSelectedButton() !== ui.Button.OK) { notify_('Setup cancelled.'); return; }
+  const surahs = resolveSurahs_(surahResp.getResponseText().trim(), theme, totalWeeks);
+
   // ── Build the versioned tab ──
   const sheetName = uniqueSheetName_(ss, theme, start, tz);
   const sh = ss.insertSheet(sheetName);
@@ -279,7 +362,6 @@ function setupSheet() {
     .setBackground(CONFIG.BRAND_COLOR);
   sh.setFrozenRows(1);
 
-  const totalWeeks = Math.ceil(days / 7);
   const rows = [];
   const seedCount = { P1: 0, P3: 0, P4: 0, P5S: 0, P5H: 0 };
 
@@ -289,7 +371,7 @@ function setupSheet() {
     const weekNum = Math.floor(d / 7) + 1;
     const key = pillarForDay_(dayIdx, weekNum, totalWeeks);
     const p = PILLARS[key];
-    const surah = WEEK_SURAHS[Math.min(weekNum - 1, WEEK_SURAHS.length - 1)];
+    const surah = surahs[Math.min(weekNum - 1, surahs.length - 1)];
 
     let topic;
     if (key === 'P2')      topic = 'How to memorize Surah ' + surah + ' in 7 days (this week\'s surah)';
@@ -422,7 +504,7 @@ function callClaude_(prompt) {
       'anthropic-version': '2023-06-01'
     },
     payload: JSON.stringify({
-      model: CONFIG.MODEL,
+      model: getModel_(),
       max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }]
     }),

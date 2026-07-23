@@ -24,12 +24,15 @@ hook, script/shot list, caption and hashtags for each post.
 
 ### Standard operating procedure (SOP)
 
-1. **LQK Content → 1. Setup Sheet.** Answer three prompts:
+1. **LQK Content → 1. Setup Sheet.** Answer four prompts:
    - **Theme / Event / Idea** — what the batch is built around
      (e.g. "Ramadan 2027 prep", "Open house at Tampines"). Leave blank for a
      general evergreen batch.
    - **Number of days** — any number from 1 to 60 (default 30).
    - **Start date** — `YYYY-MM-DD` for Day 1; blank uses the next Monday.
+   - **Surah focus** — the surahs that drive the weekly Parent Playbook (one
+     per week). Leave blank for the default rotation, type `AUTO` to let Claude
+     pick surahs that fit your theme, or type your own comma-separated list.
 
    This creates a **new, auto-named tab** (e.g. `Ramadan 2027 prep — 13 Jul 2026`)
    so previous calendars are preserved. Every planned row is tagged with the
@@ -44,6 +47,11 @@ hook, script/shot list, caption and hashtags for each post.
 
 4. After posting, put the link in **Posted Link / Notes** and use
    **Mark selected row POSTED**.
+
+**Choosing the model:** **LQK Content → Set generation model** lets you switch
+between Sonnet, Opus, Haiku, or any model ID you paste. The choice is stored in
+Script Properties and used for all generations until you change it (default
+`claude-sonnet-4-6`).
 
 ### Weekly pillar rhythm
 
