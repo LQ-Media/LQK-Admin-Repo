@@ -122,6 +122,28 @@ const EVENT_TYPES = [
 
 function eventById_(id) { return EVENT_TYPES.find(t => t.id === id) || null; }
 
+// ─────────────────  PER-EVENT PILLAR MIX  ───────────────────
+// Each event type can reshape the weekly rhythm (Option 1). Only the
+// "flex" days are overridden; Mon/Tue/Wed and Friday stay fixed so the
+// core growth+trust spine is always present.
+//   sundayAlways : force the Sunday pillar every week (else base:
+//                  soft P5S weeks 1..n-1, hard P5H final week)
+//   thu          : override Thursday (base P4 Hot Take)
+//   sat          : override Saturday (base alternates P3/P1 by week)
+const EVENT_MIX = {
+  holiday:      { note: 'Balanced awareness; soft doors on Sundays.', sundayAlways: 'P5S' },
+  registration: { note: 'Conversion-heavy: hard doors every Sunday, proof/results on Saturdays.',
+                  sundayAlways: 'P5H', sat: 'P5S' },
+  product:      { note: 'Soft product doors every Sunday.', sundayAlways: 'P5S' },
+  event:        { note: 'Drives attendance with soft doors every Sunday.', sundayAlways: 'P5S' },
+  surah:        { note: 'Playbook + proof heavy around the weekly surah.', thu: 'P1', sat: 'P2' },
+  brand:        { note: 'Awareness-led; keep doors soft, no hard sell.', sundayAlways: 'P5S' },
+  milestone:    { note: 'Proof and pride heavy (extra Kid-Proof).', thu: 'P1', sundayAlways: 'P5S' },
+  seasonal:     { note: 'Seasonal balance with soft Sunday doors.', sundayAlways: 'P5S' },
+  community:    { note: 'Testimonial + proof heavy.', thu: 'P5S', sat: 'P1', sundayAlways: 'P5S' },
+  fundraising:  { note: 'Sincere giving doors on a soft cadence.', thu: 'P5S', sundayAlways: 'P5S' }
+};
+
 // ─────────────────────  PILLAR DEFINITIONS  ─────────────────
 const PILLARS = {
   P1: {
@@ -186,18 +208,20 @@ const PILLARS = {
   }
 };
 
-// Weekly rhythm: index 0 = Monday ... 6 = Sunday
-// Saturday alternates P1/P3 by week; Sunday is P5 soft, going HARD only
-// in the final week of the batch.
-function pillarForDay_(dayIdx, weekNum, totalWeeks) {
+// Weekly rhythm: index 0 = Monday ... 6 = Sunday.
+// Base: Sat alternates P1/P3 by week; Sun is P5 soft, going HARD only in
+// the final week. The chosen event type may override the flex days (Thu,
+// Sat, Sun) via EVENT_MIX.
+function pillarForDay_(dayIdx, weekNum, totalWeeks, eventId) {
+  const mix = EVENT_MIX[eventId] || {};
   switch (dayIdx) {
     case 0: return 'P1';
     case 1: return 'P2';
     case 2: return 'P3';
-    case 3: return 'P4';
+    case 3: return mix.thu || 'P4';
     case 4: return 'P2S';
-    case 5: return (weekNum % 2 === 1) ? 'P3' : 'P1';
-    case 6: return (weekNum === totalWeeks) ? 'P5H' : 'P5S';
+    case 5: return mix.sat || ((weekNum % 2 === 1) ? 'P3' : 'P1');
+    case 6: return mix.sundayAlways || ((weekNum === totalWeeks) ? 'P5H' : 'P5S');
   }
 }
 
@@ -348,7 +372,10 @@ function buildSetupHtml_() {
   ];
 
   const data = JSON.stringify({
-    events: EVENT_TYPES.map(t => ({ id: t.id, label: t.label, suggestions: t.suggestions })),
+    events: EVENT_TYPES.map(t => ({
+      id: t.id, label: t.label, suggestions: t.suggestions,
+      note: (EVENT_MIX[t.id] && EVENT_MIX[t.id].note) || ''
+    })),
     presets: presets,
     defaultDays: CONFIG.DEFAULT_DAYS,
     maxDays: CONFIG.MAX_DAYS,
@@ -385,6 +412,7 @@ function buildSetupHtml_() {
 
   <label for="event">Event / theme type</label>
   <select id="event"></select>
+  <div class="hint" id="mixNote"></div>
 
   <label for="focus">Focus for this batch</label>
   <input type="text" id="focus" list="focusList" autocomplete="off"
@@ -432,6 +460,7 @@ function buildSetupHtml_() {
       var o = document.createElement('option'); o.value = s; dl.appendChild(o);
     });
     document.getElementById('focus').value = '';
+    document.getElementById('mixNote').textContent = (e && e.note) ? ('Plan: ' + e.note) : '';
   }
   ev.addEventListener('change', refreshSuggestions);
   refreshSuggestions();
@@ -532,7 +561,7 @@ function buildCalendar(form) {
     const date = new Date(start.getTime() + d * 86400000);
     const dayIdx = (date.getDay() + 6) % 7;
     const weekNum = Math.floor(d / 7) + 1;
-    const key = pillarForDay_(dayIdx, weekNum, totalWeeks);
+    const key = pillarForDay_(dayIdx, weekNum, totalWeeks, evt.id);
     const p = PILLARS[key];
     const surah = WEEK_SURAHS[Math.min(weekNum - 1, WEEK_SURAHS.length - 1)];
 
@@ -622,7 +651,10 @@ function generateRow_(sh, rowNum, vals, ctx) {
     ? '\n' + lines.join('\n') +
       '\nGround every post in the LQK brand identity above, and weave this ' +
       'event/focus in naturally where it fits — without breaking the pillar\'s ' +
-      'job or forcing it where it feels unnatural.'
+      'job or forcing it where it feels unnatural.' +
+      '\nIf this event type implies a different call-to-action than the pillar\'s ' +
+      'default (e.g. donate, register, attend, buy), use the event-appropriate ' +
+      'CTA instead — but still exactly ONE CTA.'
     : '';
 
   const prompt =

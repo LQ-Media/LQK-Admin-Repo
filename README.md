@@ -70,5 +70,12 @@ Script Properties and used for all generations until you change it (default
 | Sun | P5 Doors — Soft, going **Hard in the final week** | Conversion |
 
 The rhythm is day-of-week driven, so it adapts to whatever day count you pick.
-The hard-sell Sunday now lands in the **last week of the batch** (not a fixed
-week 4).
+The hard-sell Sunday lands in the **last week of the batch** (not a fixed week 4).
+
+**Per-event reshaping:** the chosen event type reshapes the flex days (Thu, Sat,
+Sun) so the mix matches the goal — e.g. a **registration campaign** runs hard
+Doors every Sunday plus proof/results on Saturdays, **weekly surah update** adds
+extra Playbook/Kid-Proof, and **brand awareness** keeps Doors soft with no hard
+sell. Mon/Tue/Wed/Fri stay fixed so the growth+trust spine is always present. The
+dialog shows the plan summary for whichever event you pick, and the Doors CTA
+adapts to the event (register / attend / buy / donate), always one CTA.
