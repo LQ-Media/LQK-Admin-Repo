@@ -24,19 +24,23 @@ hook, script/shot list, caption and hashtags for each post.
 
 ### Standard operating procedure (SOP)
 
-1. **LQK Content → 1. Setup Sheet.** Answer four prompts:
-   - **Theme / Event / Idea** — what the batch is built around
-     (e.g. "Ramadan 2027 prep", "Open house at Tampines"). Leave blank for a
-     general evergreen batch.
+1. **LQK Content → 1. Setup Sheet.** A form dialog opens with four fields:
+   - **Event / theme type** — a dropdown of 10 options: Islamic holiday /
+     observance, class registration campaign, product promotion, thematic event
+     promotion, weekly surah update, general brand awareness, milestone /
+     achievement, seasonal / school term, community & testimonials, and
+     fundraising / charity.
+   - **Focus** — what to centre the batch on. A type-ahead list suggests focuses
+     tailored to the chosen event type, or type your own. Leave blank to revolve
+     around the core LQK brand identity only.
    - **Number of days** — any number from 1 to 60 (default 30).
-   - **Start date** — `YYYY-MM-DD` for Day 1; blank uses the next Monday.
-   - **Surah focus** — the surahs that drive the weekly Parent Playbook (one
-     per week). Leave blank for the default rotation, type `AUTO` to let Claude
-     pick surahs that fit your theme, or type your own comma-separated list.
+   - **Start date** — radio buttons: Next Monday, Monday after next, First Monday
+     of next month, or a Custom date picker.
 
-   This creates a **new, auto-named tab** (e.g. `Ramadan 2027 prep — 13 Jul 2026`)
-   so previous calendars are preserved. Every planned row is tagged with the
-   theme.
+   This creates a **new, auto-named tab** (e.g. `Ramadan — 13 Jul 2026`) so
+   previous calendars are preserved. Every planned row is tagged with the event +
+   focus, and the weekly surah still runs in the background so the Playbook,
+   Friday shareable and Kid-Proof pillars stay concrete.
 
 2. **LQK Content → 2. Generate All PLANNED rows.** Fills Hook, Script/Shot
    List, Caption and Hashtags for each planned row on the **active tab**,

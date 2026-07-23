@@ -1,27 +1,29 @@
 /**
  * ============================================================
- *  LQK CONTENT ENGINE  —  v2.0
- *  Theme-driven TikTok/Instagram content system for
+ *  LQK CONTENT ENGINE  —  v3.0
+ *  Event-driven TikTok/Instagram content system for
  *  Little Quran Kids
  * ============================================================
- *  WHAT'S NEW IN v2 (vs v1)
- *  - Setup now ASKS you (pop-ups) for:
- *        1) the EVENT / THEME / IDEA this batch is built around
- *        2) HOW MANY DAYS of content to plan (1–60)
- *        3) the START DATE (defaults to the next Monday)
- *  - The theme "flavours everything": it is woven into every
- *    planned topic AND sent to Claude with every generation, so
- *    hooks, scripts and captions all lean into your event/idea.
- *  - Each Setup builds a NEW, auto-named tab (e.g.
- *    "Ramadan Prep — 13 Jul 2026"), so old calendars are kept
- *    and nothing gets overwritten.
- *  - The API key now lives in Script Properties, NOT in the code.
+ *  WHAT'S NEW IN v3 (vs v2)
+ *  - "Setup Sheet" now opens ONE form dialog (not typed pop-ups):
+ *        1) EVENT TYPE — dropdown (10 options)
+ *        2) FOCUS      — what to centre this batch on (suggestions
+ *                        tailored to the event type + free text)
+ *        3) DAYS       — how many days of content (1–60)
+ *        4) START DATE — radio buttons (Next Monday / Monday after
+ *                        next / First Monday of next month / Custom)
+ *  - The event type + focus "flavour everything": woven into every
+ *    planned topic AND sent to Claude with every generation, always
+ *    grounded in the LQK brand identity.
+ *  - The weekly surah still runs in the background so the Playbook,
+ *    Friday shareable and Kid-Proof pillars stay concrete.
+ *  - Each Setup builds a NEW, auto-named tab, so nothing is overwritten.
+ *  - API key + model live in Script Properties, NOT in the code.
  *
  *  ONE-TIME SETUP
- *  a. LQK Content menu → "Set / update API key" → paste your
- *     Anthropic API key (console.anthropic.com → API Keys).
- *  b. Use "1. Setup Sheet" and answer the prompts.
- *  c. Then "2. Generate All PLANNED rows".
+ *  a. LQK Content menu → "Set / update API key" → paste your key.
+ *  b. "1. Setup Sheet" → fill in the form.
+ *  c. "2. Generate All PLANNED rows".
  * ============================================================
  */
 
@@ -32,11 +34,10 @@ const CONFIG = {
   MAX_DAYS: 60,
   DELAY_MS: 3000,                // Pause between API calls
   BRAND_COLOR: '#B4571C',
-  API_KEY_PROP: 'ANTHROPIC_API_KEY',  // key name in Script Properties
-  MODEL_PROP: 'ANTHROPIC_MODEL'       // chosen model in Script Properties
+  API_KEY_PROP: 'ANTHROPIC_API_KEY',
+  MODEL_PROP: 'ANTHROPIC_MODEL'
 };
 
-// Models offered by the "Set generation model" menu item.
 const MODEL_CHOICES = [
   'claude-sonnet-4-6',
   'claude-opus-4-8',
@@ -44,7 +45,7 @@ const MODEL_CHOICES = [
 ];
 
 // ───────────────────────  BRAND BRIEF  ──────────────────────
-// This is sent to Claude with every generation request.
+// Sent to Claude with every generation request.
 const BRAND = `
 BUSINESS: Little Quran Kids (LQK), littlequrankids.sg — Islamic enrichment
 centre in Singapore. Core promise: children memorize Juz Amma through PLAY,
@@ -61,6 +62,65 @@ CTA CONVENTIONS: growth posts end with a save/share nudge or a question;
 Playbook and Doors posts end with: Comment TRACKER for the free
 "Juz Amma at Home Tracker" (WhatsApp delivery). Never more than one CTA.
 `;
+
+// ─────────────────────  EVENT TYPES  ────────────────────────
+// Drives the Setup dropdown. `blurb` is fed to Claude; `suggestions`
+// populate the focus field's type-ahead list for that event type.
+const EVENT_TYPES = [
+  { id: 'holiday', label: 'Islamic holiday / observance',
+    blurb: 'This batch centres on an Islamic holiday or observance. Tie content warmly ' +
+      'to the occasion and how LQK families can mark it with their kids.',
+    suggestions: ['Ramadan', 'Eid al-Fitr', 'Eid al-Adha', 'Muharram / Hijri New Year',
+      'Mawlid an-Nabi', "Isra' Mi'raj", 'Last 10 nights', 'Day of Arafah'] },
+  { id: 'registration', label: 'Class registration campaign',
+    blurb: 'This batch is a registration/enrolment campaign for upcoming classes. Build ' +
+      'desire and trust across the batch and drive toward the waitlist/registration, ' +
+      'using real per-branch class caps as honest scarcity. Keep the one-CTA rule.',
+    suggestions: ['2027 enrolment open', 'Early-bird pricing', 'Branch caps / limited seats',
+      'Waitlist priority', 'Trial class offer', 'New branch launch'] },
+  { id: 'product', label: 'Product promotion',
+    blurb: 'This batch promotes a specific LQK product or resource. Show it in real family ' +
+      'use, make the benefit obvious, and give one clear next step.',
+    suggestions: ['Juz Amma at Home Tracker', 'Memorization kit', 'Storybook / Sirah book',
+      'Daff / percussion set', 'Digital download', 'Bundle offer'] },
+  { id: 'event', label: 'Thematic event promotion',
+    blurb: 'This batch promotes a specific LQK event. Build anticipation, show what ' +
+      'attendees experience, and drive sign-ups/attendance.',
+    suggestions: ['Open house', 'Parent workshop', 'Recital / showcase', 'Holiday camp',
+      'Competition / challenge', 'Community gathering'] },
+  { id: 'surah', label: 'Weekly surah update',
+    blurb: 'This batch is the ongoing weekly surah memorization series. Focus on teaching ' +
+      'and momentum around each week\'s surah.',
+    suggestions: ['An-Nas', 'Al-Falaq', 'Al-Ikhlas', 'Al-Kafirun', 'Al-Masad', 'Al-Fil',
+      'Quraysh', 'Al-Qadr'] },
+  { id: 'brand', label: 'General brand awareness',
+    blurb: 'This batch is top-of-funnel brand storytelling. Show the LQK method, values and ' +
+      'personality; grow reach and warmth without a hard offer.',
+    suggestions: ['The LQK method', 'Play vs rote drilling', 'Meet the teachers',
+      'A day at LQK', 'Why percussion', 'Our story'] },
+  { id: 'milestone', label: 'Milestone / achievement',
+    blurb: 'This batch celebrates student and centre milestones. Use real proof and pride ' +
+      'to build trust and social proof.',
+    suggestions: ['Juz Amma completion', 'Graduation', 'Batch results',
+      'Youngest to finish a surah', 'Term wrap-up', 'Anniversary'] },
+  { id: 'seasonal', label: 'Seasonal / school term',
+    blurb: 'This batch is tied to the Singapore school calendar. Position LQK around the ' +
+      'season\'s parent needs.',
+    suggestions: ['Back to school', 'June holidays', 'December holidays',
+      'Exam-season balance', 'New year reset', 'School holiday programme'] },
+  { id: 'community', label: 'Community & testimonials',
+    blurb: 'This batch is a testimonial / community drive. Let parent voices and student ' +
+      'stories lead, and invite shares and referrals.',
+    suggestions: ['Parent testimonial', 'Student story', 'Referral drive', 'Reviews',
+      'Community shoutout', 'Family spotlight'] },
+  { id: 'fundraising', label: 'Fundraising / charity',
+    blurb: 'This batch supports a charitable / fundraising cause (e.g. zakat, sadaqah, ' +
+      'bursary). Keep it sincere, transparent and never guilt-driven; one clear way to give.',
+    suggestions: ['Bursary fund', 'Zakat eligible', 'Sadaqah jariyah', 'Sponsor a child',
+      'Ramadan giving', 'Community drive'] }
+];
+
+function eventById_(id) { return EVENT_TYPES.find(t => t.id === id) || null; }
 
 // ─────────────────────  PILLAR DEFINITIONS  ─────────────────
 const PILLARS = {
@@ -142,44 +202,9 @@ function pillarForDay_(dayIdx, weekNum, totalWeeks) {
 }
 
 // ─────────────────────  TOPIC SEEDS  ────────────────────────
-// One surah per week drives P2; other pillars rotate through seed lists.
-// This is the fallback rotation when the setup surah prompt is left blank.
+// Background weekly surah keeps the Playbook / Friday / Kid-Proof pillars
+// concrete no matter which event type is chosen.
 const WEEK_SURAHS = ['An-Nas', 'Al-Falaq', 'Al-Ikhlas', 'Al-Kafirun', 'Al-Masad'];
-
-// Turn the Step-4 answer into a per-week surah list of length `weeks`.
-//   blank  → default rotation
-//   AUTO   → ask Claude for theme-appropriate Juz Amma surahs
-//   custom → user's comma-separated list
-// Any list shorter than `weeks` repeats its last entry (handled at read time).
-function resolveSurahs_(answer, theme, weeks) {
-  if (!answer) return WEEK_SURAHS.slice();
-  if (answer.toUpperCase() === 'AUTO') {
-    try { return getThemedSurahs_(theme, weeks); }
-    catch (e) {
-      notify_('Could not auto-pick surahs (' + String(e).slice(0, 120) +
-        '). Using the default rotation.');
-      return WEEK_SURAHS.slice();
-    }
-  }
-  const list = answer.split(',').map(s => s.trim()).filter(String);
-  return list.length ? list : WEEK_SURAHS.slice();
-}
-
-// Ask Claude for `weeks` Juz Amma surahs that suit the theme.
-function getThemedSurahs_(theme, weeks) {
-  const prompt =
-    'You are planning a Quran memorization content series for Little Quran Kids ' +
-    '(children ages 4–12, memorizing Juz Amma).' +
-    (theme ? '\nThe series theme/event is: ' + theme : '') +
-    '\nPick ' + weeks + ' surahs FROM JUZ AMMA (juz 30) that best fit this series, ' +
-    'ordered as they should appear week by week (start easier/shorter). ' +
-    'Respond with ONLY a JSON object, no markdown, no preamble: ' +
-    '{"surahs": ["Name1", "Name2", ...]} with exactly ' + weeks + ' English surah names.';
-  const obj = parseJson_(callClaude_(prompt));
-  const list = (obj.surahs || []).map(s => String(s).trim()).filter(String);
-  if (!list.length) throw new Error('empty surah list');
-  return list;
-}
 
 const SEEDS = {
   P1: ['Day 1 vs today recitation of this week\'s surah',
@@ -208,7 +233,7 @@ function onOpen() {
   try {
     SpreadsheetApp.getUi()
       .createMenu('LQK Content')
-      .addItem('1. Setup Sheet (asks theme + number of days)', 'setupSheet')
+      .addItem('1. Setup Sheet (choose event + days)', 'setupSheet')
       .addItem('2. Generate All PLANNED rows', 'generateAll')
       .addItem('3. Generate This Row only', 'generateSelected')
       .addSeparator()
@@ -220,13 +245,12 @@ function onOpen() {
   } catch (e) { Logger.log('onOpen: ' + e); }
 }
 
-// Graceful notifier — never crashes when no UI is available.
 function notify_(msg) {
   try { SpreadsheetApp.getActiveSpreadsheet().toast(msg, 'LQK Content', 8); }
   catch (e) { Logger.log('NOTIFY: ' + msg); }
 }
 
-// ───────────────────  API KEY (Script Properties)  ──────────
+// ───────────────────  API KEY + MODEL  ──────────────────────
 function setApiKey() {
   const ui = SpreadsheetApp.getUi();
   const resp = ui.prompt(
@@ -277,104 +301,242 @@ function getModel_() {
   return PropertiesService.getScriptProperties().getProperty(CONFIG.MODEL_PROP) || CONFIG.MODEL;
 }
 
-// ───────────────────  1. SETUP SHEET  ───────────────────────
+// ───────────────────  1. SETUP (form dialog)  ───────────────
 const HEADERS = ['Day', 'Date', 'Weekday', 'Pillar', 'Job', 'Format',
   'Filming?', 'Topic', 'Hook', 'Script / Shot List / Slides',
   'Caption', 'Hashtags', 'Status', 'Posted Link / Notes'];
 
-const THEME_META_KEY = 'lqk_theme';
+const META_EVENT = 'lqk_event_id';
+const META_FOCUS = 'lqk_focus';
 
+// Opens the setup form. The form calls buildCalendar_() on submit.
 function setupSheet() {
+  const html = HtmlService.createHtmlOutput(buildSetupHtml_())
+    .setWidth(440).setHeight(620);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Set up a content batch');
+}
+
+// Date helpers ------------------------------------------------
+function nextMonday_() {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const add = (8 - today.getDay()) % 7 || 7;   // days until the next Monday
+  return new Date(today.getTime() + add * 86400000);
+}
+function firstMondayOfNextMonth_() {
+  const now = new Date();
+  const first = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const add = (8 - first.getDay()) % 7;        // 0 if the 1st is already Monday
+  return new Date(first.getTime() + add * 86400000);
+}
+function isoDate_(d) {
+  return Utilities.formatDate(d, Session.getScriptTimeZone(), 'yyyy-MM-dd');
+}
+
+// Builds the dialog HTML (single self-contained string, no extra files).
+function buildSetupHtml_() {
+  const tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  const fmt = d => Utilities.formatDate(d, tz, 'EEE, dd MMM yyyy');
+
+  const nm = nextMonday_();
+  const man = new Date(nm.getTime() + 7 * 86400000);
+  const fmn = firstMondayOfNextMonth_();
+  const presets = [
+    { v: isoDate_(nm),  label: 'Next Monday — ' + fmt(nm) },
+    { v: isoDate_(man), label: 'Monday after next — ' + fmt(man) },
+    { v: isoDate_(fmn), label: 'First Monday of next month — ' + fmt(fmn) }
+  ];
+
+  const data = JSON.stringify({
+    events: EVENT_TYPES.map(t => ({ id: t.id, label: t.label, suggestions: t.suggestions })),
+    presets: presets,
+    defaultDays: CONFIG.DEFAULT_DAYS,
+    maxDays: CONFIG.MAX_DAYS,
+    brand: CONFIG.BRAND_COLOR
+  });
+
+  return `
+<!DOCTYPE html><html><head><base target="_top">
+<style>
+  :root { --brand: ${CONFIG.BRAND_COLOR}; }
+  * { box-sizing: border-box; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 13px; color: #202124;
+         margin: 0; padding: 16px; }
+  h2 { margin: 0 0 4px; font-size: 16px; color: var(--brand); }
+  p.sub { margin: 0 0 14px; color: #5f6368; }
+  label { display: block; font-weight: bold; margin: 12px 0 4px; }
+  select, input[type=text], input[type=number], input[type=date] {
+    width: 100%; padding: 8px; border: 1px solid #dadce0; border-radius: 6px; font-size: 13px; }
+  .radio { display: flex; align-items: center; margin: 6px 0; }
+  .radio input { margin-right: 8px; }
+  .hint { color: #5f6368; font-size: 11px; margin-top: 3px; }
+  #customWrap { margin-top: 6px; display: none; }
+  .actions { margin-top: 20px; display: flex; gap: 8px; }
+  button { padding: 9px 16px; border-radius: 6px; border: none; font-size: 13px; cursor: pointer; }
+  button.primary { background: var(--brand); color: #fff; font-weight: bold; }
+  button.ghost { background: #f1f3f4; color: #202124; }
+  #err { color: #c5221f; margin-top: 10px; min-height: 16px; }
+  #busy { display: none; margin-top: 12px; color: #5f6368; }
+</style></head>
+<body>
+  <h2>Set up a content batch</h2>
+  <p class="sub">Pick what this batch is about. Content is planned to the weekly
+  rhythm and flavoured to your choice, always grounded in the LQK brand.</p>
+
+  <label for="event">Event / theme type</label>
+  <select id="event"></select>
+
+  <label for="focus">Focus for this batch</label>
+  <input type="text" id="focus" list="focusList" autocomplete="off"
+         placeholder="Pick a suggestion or type your own">
+  <datalist id="focusList"></datalist>
+  <div class="hint">What to centre the batch on. Leave blank to revolve around the
+  core LQK brand identity only.</div>
+
+  <label for="days">How many days?</label>
+  <input type="number" id="days" min="1" max="60">
+  <div class="hint">1–60 days. The weekly rhythm adapts automatically.</div>
+
+  <label>Start date (Day 1)</label>
+  <div id="presets"></div>
+  <div class="radio">
+    <input type="radio" name="start" id="startCustom" value="custom">
+    <label for="startCustom" style="font-weight:normal;margin:0;">Custom date…</label>
+  </div>
+  <div id="customWrap"><input type="date" id="customDate"></div>
+
+  <div id="err"></div>
+  <div id="busy">Building calendar… please wait.</div>
+
+  <div class="actions">
+    <button class="primary" id="go">Build calendar</button>
+    <button class="ghost" id="cancel">Cancel</button>
+  </div>
+
+<script>
+  var DATA = ${data};
+
+  // Populate event dropdown
+  var ev = document.getElementById('event');
+  DATA.events.forEach(function(e){
+    var o = document.createElement('option');
+    o.value = e.id; o.textContent = e.label; ev.appendChild(o);
+  });
+
+  // Focus suggestions follow the selected event type
+  function refreshSuggestions(){
+    var e = DATA.events.filter(function(x){ return x.id === ev.value; })[0];
+    var dl = document.getElementById('focusList');
+    dl.innerHTML = '';
+    (e ? e.suggestions : []).forEach(function(s){
+      var o = document.createElement('option'); o.value = s; dl.appendChild(o);
+    });
+    document.getElementById('focus').value = '';
+  }
+  ev.addEventListener('change', refreshSuggestions);
+  refreshSuggestions();
+
+  // Days default
+  document.getElementById('days').value = DATA.defaultDays;
+
+  // Start-date presets
+  var pr = document.getElementById('presets');
+  DATA.presets.forEach(function(p, i){
+    var row = document.createElement('div'); row.className = 'radio';
+    var input = document.createElement('input');
+    input.type = 'radio'; input.name = 'start'; input.value = p.v; input.id = 'p'+i;
+    if (i === 0) input.checked = true;
+    var lab = document.createElement('label');
+    lab.htmlFor = 'p'+i; lab.textContent = p.label;
+    lab.style.fontWeight = 'normal'; lab.style.margin = '0';
+    row.appendChild(input); row.appendChild(lab); pr.appendChild(row);
+  });
+
+  // Show custom date field only when "Custom" is chosen
+  document.querySelectorAll('input[name=start]').forEach(function(r){
+    r.addEventListener('change', function(){
+      document.getElementById('customWrap').style.display =
+        (this.value === 'custom' && this.checked) ? 'block' : 'none';
+    });
+  });
+
+  document.getElementById('cancel').addEventListener('click', function(){
+    google.script.host.close();
+  });
+
+  document.getElementById('go').addEventListener('click', function(){
+    var err = document.getElementById('err'); err.textContent = '';
+    var days = parseInt(document.getElementById('days').value, 10);
+    if (isNaN(days) || days < 1 || days > DATA.maxDays) {
+      err.textContent = 'Enter a number of days between 1 and ' + DATA.maxDays + '.'; return;
+    }
+    var sel = document.querySelector('input[name=start]:checked');
+    var startDate = sel ? sel.value : '';
+    if (startDate === 'custom') {
+      startDate = document.getElementById('customDate').value;
+      if (!startDate) { err.textContent = 'Please pick a custom date.'; return; }
+    }
+    var payload = {
+      eventId: ev.value,
+      focus: document.getElementById('focus').value.trim(),
+      days: days,
+      startDate: startDate
+    };
+    document.getElementById('go').disabled = true;
+    document.getElementById('busy').style.display = 'block';
+    google.script.run
+      .withSuccessHandler(function(msg){ google.script.host.close(); })
+      .withFailureHandler(function(e){
+        document.getElementById('go').disabled = false;
+        document.getElementById('busy').style.display = 'none';
+        err.textContent = e && e.message ? e.message : 'Something went wrong.';
+      })
+      .buildCalendar(payload);
+  });
+</script>
+</body></html>`;
+}
+
+// Called from the dialog. Builds the versioned calendar tab.
+function buildCalendar_(form) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const ui = SpreadsheetApp.getUi();
+  const tz = ss.getSpreadsheetTimeZone();
 
-  // ── Prompt 1: theme / event / idea ──
-  const themeResp = ui.prompt(
-    'Step 1 of 4 — Theme / Event / Idea',
-    'What is this batch built around? Examples: "Ramadan 2027 prep", ' +
-    '"Open house at Tampines", "Muharram / new hijri year", "Back to school".\n\n' +
-    'Leave blank for a general evergreen batch.',
-    ui.ButtonSet.OK_CANCEL);
-  if (themeResp.getSelectedButton() !== ui.Button.OK) { notify_('Setup cancelled.'); return; }
-  const theme = themeResp.getResponseText().trim();
-
-  // ── Prompt 2: number of days ──
-  const daysResp = ui.prompt(
-    'Step 2 of 4 — How many days?',
-    'How many days of content should I plan? (1–' + CONFIG.MAX_DAYS + ')\n\n' +
-    'Leave blank for ' + CONFIG.DEFAULT_DAYS + '.',
-    ui.ButtonSet.OK_CANCEL);
-  if (daysResp.getSelectedButton() !== ui.Button.OK) { notify_('Setup cancelled.'); return; }
-  let days = parseInt(daysResp.getResponseText().trim(), 10);
+  const evt = eventById_(form.eventId) || EVENT_TYPES[0];
+  const focus = String(form.focus || '').trim();
+  let days = parseInt(form.days, 10);
   if (isNaN(days)) days = CONFIG.DEFAULT_DAYS;
   days = Math.max(1, Math.min(CONFIG.MAX_DAYS, days));
 
-  // ── Prompt 3: start date ──
-  const defaultStart = nextMonday_();
-  const tz = ss.getSpreadsheetTimeZone();
-  const startResp = ui.prompt(
-    'Step 3 of 4 — Start date',
-    'Day 1 date as YYYY-MM-DD.\n\n' +
-    'Leave blank to use the next Monday (' +
-    Utilities.formatDate(defaultStart, tz, 'dd MMM yyyy') + ').',
-    ui.ButtonSet.OK_CANCEL);
-  if (startResp.getSelectedButton() !== ui.Button.OK) { notify_('Setup cancelled.'); return; }
-  let start;
-  const startText = startResp.getResponseText().trim();
-  if (!startText) {
-    start = defaultStart;
-  } else if (/^\d{4}-\d{2}-\d{2}$/.test(startText)) {
-    start = new Date(startText + 'T00:00:00');
-    if (isNaN(start.getTime())) { ui.alert('Could not read that date. Setup cancelled.'); return; }
-  } else {
-    ui.alert('Date must look like YYYY-MM-DD (e.g. 2026-07-13). Setup cancelled.');
-    return;
-  }
-  if (start.getDay() !== 1) {
-    notify_('Heads up: start date is not a Monday. The weekly rhythm assumes Day 1 = Monday.');
-  }
+  const start = new Date(String(form.startDate) + 'T00:00:00');
+  if (isNaN(start.getTime())) throw new Error('Could not read the start date.');
 
   const totalWeeks = Math.ceil(days / 7);
-
-  // ── Prompt 4: surah focus for the weekly Playbook ──
-  const surahResp = ui.prompt(
-    'Step 4 of 4 — Surah focus',
-    'Which surahs drive the weekly Parent Playbook (P2)? You need ' + totalWeeks +
-    ' (one per week).\n\n' +
-    '• Leave blank for the default rotation (An-Nas, Al-Falaq, Al-Ikhlas, ' +
-    'Al-Kafirun, Al-Masad).\n' +
-    '• Type AUTO to let Claude pick surahs that fit your theme.\n' +
-    '• Or type your own, comma-separated (e.g. Al-Qadr, Al-Fil, Quraysh).',
-    ui.ButtonSet.OK_CANCEL);
-  if (surahResp.getSelectedButton() !== ui.Button.OK) { notify_('Setup cancelled.'); return; }
-  const surahs = resolveSurahs_(surahResp.getResponseText().trim(), theme, totalWeeks);
-
-  // ── Build the versioned tab ──
-  const sheetName = uniqueSheetName_(ss, theme, start, tz);
+  const sheetName = uniqueSheetName_(ss, (focus || evt.label), start, tz);
   const sh = ss.insertSheet(sheetName);
 
-  // Remember the theme on the sheet so generation can read it later.
-  sh.addDeveloperMetadata(THEME_META_KEY, theme);
+  // Remember what this batch is about, for generation.
+  sh.addDeveloperMetadata(META_EVENT, evt.id);
+  sh.addDeveloperMetadata(META_FOCUS, focus);
 
-  // Header row
   sh.getRange(1, 1, 1, HEADERS.length).setValues([HEADERS])
-    .setFontWeight('bold').setFontColor('#FFFFFF')
-    .setBackground(CONFIG.BRAND_COLOR);
+    .setFontWeight('bold').setFontColor('#FFFFFF').setBackground(CONFIG.BRAND_COLOR);
   sh.setFrozenRows(1);
 
+  const tag = focus ? (evt.label + ': ' + focus) : evt.label;
   const rows = [];
   const seedCount = { P1: 0, P3: 0, P4: 0, P5S: 0, P5H: 0 };
 
   for (let d = 0; d < days; d++) {
     const date = new Date(start.getTime() + d * 86400000);
-    const dayIdx = (date.getDay() + 6) % 7;          // 0=Mon..6=Sun
+    const dayIdx = (date.getDay() + 6) % 7;
     const weekNum = Math.floor(d / 7) + 1;
     const key = pillarForDay_(dayIdx, weekNum, totalWeeks);
     const p = PILLARS[key];
-    const surah = surahs[Math.min(weekNum - 1, surahs.length - 1)];
+    const surah = WEEK_SURAHS[Math.min(weekNum - 1, WEEK_SURAHS.length - 1)];
 
     let topic;
-    if (key === 'P2')      topic = 'How to memorize Surah ' + surah + ' in 7 days (this week\'s surah)';
+    if (key === 'P2')       topic = 'How to memorize Surah ' + surah + ' in 7 days (this week\'s surah)';
     else if (key === 'P2S') topic = 'Jumu\'ah shareable tied to Surah ' + surah + ' / family Friday habit';
     else {
       const list = SEEDS[key];
@@ -382,7 +544,7 @@ function setupSheet() {
       seedCount[key]++;
       if (key === 'P1') topic += ' (Surah ' + surah + ')';
     }
-    if (theme) topic = topic + '  —  [theme: ' + theme + ']';
+    topic = topic + '  —  [' + tag + ']';
 
     rows.push([
       d + 1,
@@ -395,35 +557,25 @@ function setupSheet() {
 
   sh.getRange(2, 1, rows.length, HEADERS.length).setValues(rows);
 
-  // Readability
   sh.setColumnWidths(1, 3, 70);
   sh.setColumnWidth(4, 150); sh.setColumnWidth(8, 260);
   sh.setColumnWidth(9, 260); sh.setColumnWidth(10, 380);
   sh.setColumnWidth(11, 300); sh.setColumnWidth(12, 200);
   sh.getRange(2, 1, rows.length, HEADERS.length).setWrap(true).setVerticalAlignment('top');
 
-  // Status dropdown
   const rule = SpreadsheetApp.newDataValidation()
     .requireValueInList(['PLANNED', 'GENERATED', 'APPROVED', 'POSTED', 'SKIP'], true).build();
   sh.getRange(2, 13, rows.length, 1).setDataValidation(rule);
 
   sh.activate();
-  notify_(days + '-day calendar "' + sheetName + '" built' +
-    (theme ? ' around "' + theme + '"' : '') +
-    '. Now run "Generate All PLANNED rows".');
+  notify_(days + '-day "' + evt.label + '" calendar built as "' + sheetName +
+    '". Now run "Generate All PLANNED rows".');
+  return 'ok';
 }
 
-// Next Monday on/after today.
-function nextMonday_() {
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const add = (8 - today.getDay()) % 7 || 7;   // days until the next Monday
-  return new Date(today.getTime() + add * 86400000);
-}
-
-// Build a safe, unique tab name from theme + start date.
-function uniqueSheetName_(ss, theme, start, tz) {
-  let base = (theme ? theme : 'Content') + ' — ' + Utilities.formatDate(start, tz, 'dd MMM yyyy');
+// Build a safe, unique tab name.
+function uniqueSheetName_(ss, label, start, tz) {
+  let base = label + ' — ' + Utilities.formatDate(start, tz, 'dd MMM yyyy');
   base = base.replace(/[:\\\/\?\*\[\]]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 90);
   let name = base, n = 2;
   while (ss.getSheetByName(name)) { name = base + ' (' + n + ')'; n++; }
@@ -433,13 +585,13 @@ function uniqueSheetName_(ss, theme, start, tz) {
 // ───────────────  2. GENERATE (Claude API)  ─────────────────
 function generateAll() {
   const sh = activeCalendar_(); if (!sh) return;
-  const theme = getSheetTheme_(sh);
+  const ctx = getSheetContext_(sh);
   const data = sh.getDataRange().getValues();
   let done = 0, failed = 0;
 
   for (let r = 1; r < data.length; r++) {
     if (String(data[r][12]).trim() !== 'PLANNED') continue;
-    const ok = generateRow_(sh, r + 1, data[r], theme);
+    const ok = generateRow_(sh, r + 1, data[r], ctx);
     ok ? done++ : failed++;
     Utilities.sleep(CONFIG.DELAY_MS);
   }
@@ -452,24 +604,29 @@ function generateSelected() {
   const row = sh.getActiveCell().getRow();
   if (row < 2) { notify_('Select a content row first (row 2 or below).'); return; }
   const vals = sh.getRange(row, 1, 1, HEADERS.length).getValues()[0];
-  const ok = generateRow_(sh, row, vals, getSheetTheme_(sh));
+  const ok = generateRow_(sh, row, vals, getSheetContext_(sh));
   notify_(ok ? 'Row ' + row + ' generated.' : 'Row ' + row + ' failed — see Notes column.');
 }
 
-function generateRow_(sh, rowNum, vals, theme) {
+function generateRow_(sh, rowNum, vals, ctx) {
   const [dayNo, date, weekday, pillarName, job, format, filming, topic] = vals;
   const key = Object.keys(PILLARS).find(k => PILLARS[k].name === pillarName);
   const p = PILLARS[key] || PILLARS.P2;
 
-  const themeLine = theme
-    ? '\nOVERARCHING THEME / EVENT FOR THIS WHOLE BATCH: ' + theme +
-      '\nWeave this theme naturally into the hook, script and caption where it fits — ' +
-      'without breaking the pillar\'s job or forcing it where it feels unnatural.'
+  const evt = ctx.eventId ? eventById_(ctx.eventId) : null;
+  const lines = [];
+  if (evt)       lines.push('EVENT TYPE FOR THIS BATCH: ' + evt.label + ' — ' + evt.blurb);
+  if (ctx.focus) lines.push('SPECIFIC FOCUS / ANGLE: ' + ctx.focus);
+  const contextLine = lines.length
+    ? '\n' + lines.join('\n') +
+      '\nGround every post in the LQK brand identity above, and weave this ' +
+      'event/focus in naturally where it fits — without breaking the pillar\'s ' +
+      'job or forcing it where it feels unnatural.'
     : '';
 
   const prompt =
     BRAND +
-    themeLine +
+    contextLine +
     '\nPILLAR: ' + p.name + '  |  JOB: ' + p.job + '  |  FORMAT: ' + p.format +
     '\nPILLAR BRIEF: ' + p.brief +
     '\nTOPIC FOR THIS POST (Day ' + dayNo + ', ' + weekday + ' ' + date + '): ' + topic +
@@ -499,10 +656,7 @@ function callClaude_(prompt) {
   const res = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
     method: 'post',
     contentType: 'application/json',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
-    },
+    headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
     payload: JSON.stringify({
       model: getModel_(),
       max_tokens: 2000,
@@ -525,7 +679,6 @@ function parseJson_(text) {
 }
 
 // ───────────────────  UTILITIES  ────────────────────────────
-// Returns the active sheet if it looks like an LQK calendar, else notifies.
 function activeCalendar_() {
   const sh = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
   const firstCell = sh.getRange(1, 1).getValue();
@@ -537,11 +690,14 @@ function activeCalendar_() {
   return sh;
 }
 
-function getSheetTheme_(sh) {
-  try {
-    const md = sh.createDeveloperMetadataFinder().withKey(THEME_META_KEY).find();
-    return (md && md.length) ? String(md[0].getValue()) : '';
-  } catch (e) { return ''; }
+function getSheetContext_(sh) {
+  function md(key) {
+    try {
+      const m = sh.createDeveloperMetadataFinder().withKey(key).find();
+      return (m && m.length) ? String(m[0].getValue()) : '';
+    } catch (e) { return ''; }
+  }
+  return { eventId: md(META_EVENT), focus: md(META_FOCUS) };
 }
 
 function markPosted() {
