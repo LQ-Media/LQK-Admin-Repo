@@ -100,6 +100,26 @@ the location's IANA zone, and the UTC offset is derived from it, so DST is
 handled and the midnight rollover happens in the *displayed* location's day, not
 Singapore's.
 
+### Layout
+
+The country dropdown and the "Use exact location" button sit in the **same row**
+as the location / date / Hijri / status chips (`.meta`), not on a separate line
+below it. All six items share one type scale so the row reads as a single strip:
+
+- chips, dropdown and button all use `700 12px/1` with `padding:6px 12px` and a
+  `999px` radius, so their heights match exactly
+- the dropdown has `appearance:none` with a globe glyph inset left and a CSS
+  chevron inset right, keeping it the same shape as a chip rather than a native
+  select control
+- `max-width:180px` plus `text-overflow:ellipsis` stops long country names
+  stretching the row
+- icons are 13px, dots 7px, and `white-space:nowrap` keeps each item on one line
+- under 720px `.meta` drops `margin-left:auto` and takes full width, so the strip
+  wraps under the countdown instead of squeezing beside it
+
+The date chip shows weekday, day and month; the year was dropped to keep the
+longer row compact.
+
 ### Settings
 
 | Setting | Default | Notes |
