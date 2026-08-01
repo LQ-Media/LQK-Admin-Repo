@@ -120,6 +120,50 @@ below it. All six items share one type scale so the row reads as a single strip:
 The date chip shows weekday, day and month; the year was dropped to keep the
 longer row compact.
 
+### Qibla compass
+
+A Qibla chip sits in the same row, between the location button and the info
+chips.
+
+**Bearing.** Computed, not tabulated — the initial great-circle bearing from the
+active location to the Kaaba (21.4225 N, 39.8262 E):
+
+```
+θ = atan2( sin Δλ · cos φ₂,  cos φ₁ · sin φ₂ − sin φ₁ · cos φ₂ · cos Δλ )
+```
+
+Because it runs off the same resolved coordinates as the prayer times, it
+follows the country automatically, and sharpens if the visitor grants exact
+location. Spot-checked against published values: Singapore 293.0°, London
+119.0°, Cairo 136.1°, New York 58.5°, Dubai 258.2°, Sydney 277.5°, Jakarta
+295.2° — all within a degree. Singapore matches the 293 that was previously
+hardcoded in the section settings, which is where that number came from.
+
+**Compass.** Tapping the chip starts the device orientation listener and the
+needle rotates to point at the Qibla (`qibla − heading`). Before that, the
+needle shows the bearing as if north were up, and the degree figure is correct
+and useful on its own — desktop included.
+
+Heading is read as:
+
+- iOS — `event.webkitCompassHeading`, a true compass heading. iOS 13+ requires
+  `DeviceOrientationEvent.requestPermission()` from a user gesture, which is why
+  the chip is a button rather than something that starts automatically.
+- elsewhere — `deviceorientationabsolute` and `360 − alpha`. Plain
+  `deviceorientation` alpha is only accepted when `event.absolute === true`;
+  a relative reading is not referenced to magnetic north and would point
+  nowhere useful.
+
+Both add `screen.orientation.angle` so a rotated phone still points correctly.
+
+Accuracy is bounded by the phone's magnetometer — a figure-eight wave
+recalibrates it, and metal or a magnetic case will pull it off. The degree
+reading is exact regardless; only the needle depends on the sensor.
+
+The old manual `qibla` number setting (293) is gone from this section, replaced
+by the calculation. `templates/index.json` may still carry the key; it is
+ignored. The separate `qibla` setting on `lqk-kids-corner` is untouched.
+
 ### Settings
 
 | Setting | Default | Notes |
@@ -127,7 +171,8 @@ longer row compact.
 | Detect visitor's country | on | Falls back to the default country below |
 | Default country | Singapore (MUIS) | Used when detection is off or the country is not in the table |
 | Show country dropdown | on | |
-| Show "Use my exact location" | on | Hidden automatically if the browser has no geolocation |
+| Show "Use exact location" | on | Hidden automatically if the browser has no geolocation |
+| Show Qibla compass | on | Degrees always shown; needle needs a device compass |
 | 24-hour times | off | |
 
 `templates/index.json` still carries the old `city` / `country` / `method` keys
