@@ -164,6 +164,65 @@ The old manual `qibla` number setting (293) is gone from this section, replaced
 by the calculation. `templates/index.json` may still carry the key; it is
 ignored. The separate `qibla` setting on `lqk-kids-corner` is untouched.
 
+---
+
+## 4. Qibla camera finder page
+
+`sections/lqk-qibla-ar.liquid` + `templates/page.qibla.json` + a Shopify page at
+`/pages/qibla` (handle `qibla`, template suffix `qibla`).
+
+Tapping the Qibla chip now **navigates** to a full-screen camera view instead of
+starting the compass in place. The chip's needle became static (bearing with
+north up) because a link cannot also be a compass toggle.
+
+**How it works.** The rear camera fills the screen via `getUserMedia` with
+`facingMode: environment`. The compass gives a heading, and the Kaaba marker is
+placed horizontally by the signed angular difference between heading and Qibla
+bearing:
+
+```
+left% = 50 + (delta / (FOV/2)) * 50
+```
+
+So the marker tracks a real-world direction as the phone turns. When the Qibla
+falls outside the camera's field of view the marker is replaced by an edge arrow
+with the number of degrees to turn. Within the tolerance (5° default) the ring
+turns solid orange, the marker scales up, the phone vibrates once, and the hint
+reads "You are facing the Qibla".
+
+`FOV` is a guess at the camera's horizontal field of view — 62° suits most phone
+rear cameras. It is a theme setting: if the marker drifts ahead of the true
+direction, lower it.
+
+**Location** reuses the same `localStorage` keys as the prayer card
+(`lqk-pt-country`, `lqk-pt-coords`) and the same country table, so whichever
+country the visitor picked there carries into the finder. Bearing is recomputed
+from those coordinates, not passed through a URL.
+
+**Permissions.** One tap on Start requests orientation *then* camera, in that
+order — iOS only grants `DeviceOrientationEvent.requestPermission()` inside the
+gesture, and awaiting the camera prompt first can lose it. Each degrades
+independently:
+
+| Situation | Behaviour |
+|---|---|
+| Camera denied | Compass still drives the marker over a dark background |
+| No compass | Static bearing in degrees, with an explanation |
+| Neither | Bearing in degrees; still useful |
+| Not HTTPS | `getUserMedia` is unavailable; the compass path still runs |
+
+The video track is stopped on `pagehide` so the camera indicator does not stay
+lit after leaving.
+
+**Marker image.** `image_picker` setting on the section, with a drawn SVG Kaaba
+as the fallback so the page works before any upload. A square transparent PNG
+gives the best result.
+
+**Note on the page.** It is published and publicly reachable at `/pages/qibla`,
+but nothing links to it except the chip, which only exists in this theme. Until
+the theme is published, that URL falls back to the default page template and
+shows the placeholder body text.
+
 ### Settings
 
 | Setting | Default | Notes |
