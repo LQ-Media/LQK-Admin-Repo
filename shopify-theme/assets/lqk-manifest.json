@@ -1,0 +1,27 @@
+{
+  "name": "Little Quran Kids",
+  "short_name": "Little Quran Kids",
+  "description": "Little Quran Kids — Islamic learning programmes, workshops and events for children in Singapore.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "https://www.littlequrankids.sg/",
+  "scope": "https://www.littlequrankids.sg/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#FFF8F0",
+  "theme_color": "#FFF8F0",
+  "icons": [
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0576/2924/5636/files/App_Icons.png?width=192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn.shopify.com/s/files/1/0576/2924/5636/files/App_Icons.png?width=512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

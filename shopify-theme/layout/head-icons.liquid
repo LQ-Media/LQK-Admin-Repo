@@ -1,0 +1,19 @@
+{%- comment -%}
+  Home screen / app icons.
+  Chrome falls back to a generated letter tile ("L") when it can't find a web app
+  manifest with 192px + 512px icons, or an apple-touch-icon. The tag that used to
+  live here depended on settings.favicon, which never rendered anything because
+  this theme's config/settings_schema.json is empty.
+  Icon source: Content > Files > App_Icons.png (1000x1000).
+
+  This snippet is the block that replaced the old single favicon line in
+  layout/theme.liquid, kept here as a reference copy.
+{%- endcomment -%}
+{%- assign lqk_app_icon = 'https://cdn.shopify.com/s/files/1/0576/2924/5636/files/App_Icons.png' -%}
+<link rel="icon" type="image/png" sizes="32x32" href="{{ lqk_app_icon }}?width=32">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ lqk_app_icon }}?width=192">
+<link rel="icon" type="image/png" sizes="512x512" href="{{ lqk_app_icon }}?width=512">
+<link rel="apple-touch-icon" sizes="180x180" href="{{ lqk_app_icon }}?width=180">
+<link rel="manifest" href="{{ 'lqk-manifest.json' | asset_url }}" crossorigin="anonymous">
+<meta name="application-name" content="{{ shop.name | escape }}">
+<meta name="apple-mobile-web-app-title" content="{{ shop.name | escape }}">
