@@ -100,11 +100,43 @@ the location's IANA zone, and the UTC offset is derived from it, so DST is
 handled and the midnight rollover happens in the *displayed* location's day, not
 Singapore's.
 
-### Layout
+### Card layout
 
-The country dropdown and the "Use exact location" button sit in the **same row**
-as the location / date / Hijri / status chips (`.meta`), not on a separate line
-below it. All six items share one type scale so the row reads as a single strip:
+Three rows:
+
+1. **Controls, above the cards** — country dropdown, "Use exact location",
+   the locality chip, and the Qibla chip. Everything location-related.
+2. **The prayer cards.**
+3. **Below the cards** — next-prayer countdown on the left; date, Hijri date and
+   the source chip (`Live · JAKIM`) on the right.
+
+### Locality detail
+
+The chip shows as precise a place as the browser will allow:
+
+| Source | Shows |
+|---|---|
+| Exact location granted | `Dengkil, Selangor` — reverse-geocoded from GPS |
+| Time-zone detection | `Kuala Lumpur · detected` — the country's default city |
+| Country picked manually | that country's default city |
+
+Locality names need real coordinates, so they only appear after the visitor taps
+**Use exact location**. Time-zone detection can only ever resolve to a country,
+and reverse-geocoding a country centroid would just echo the city already shown.
+
+Reverse geocoding uses BigDataCloud's `reverse-geocode-client` endpoint, which is
+free, keyless and CORS-enabled for browser use. The result is cached in
+`localStorage` against coordinates rounded to 3 decimal places (~110 m), so it is
+fetched once rather than on every page load. If the lookup fails the chip falls
+back to "Your exact location" — times and Qibla are unaffected, since both work
+from the raw coordinates and never depend on the name.
+
+`enableHighAccuracy` is set on the geolocation request, since a locality label is
+only meaningful at that precision.
+
+### Chip styling
+
+All items in a row share one type scale:
 
 - chips, dropdown and button all use `700 12px/1` with `padding:6px 12px` and a
   `999px` radius, so their heights match exactly
@@ -175,10 +207,29 @@ Tapping the Qibla chip now **navigates** to a full-screen camera view instead of
 starting the compass in place. The chip's needle became static (bearing with
 north up) because a link cannot also be a compass toggle.
 
-**How it works.** The rear camera fills the screen via `getUserMedia` with
-`facingMode: environment`. The compass gives a heading, and the Kaaba marker is
-placed horizontally by the signed angular difference between heading and Qibla
-bearing:
+**Rendering.** The compass fires faster than the screen paints, so readings are
+stored and drawn once per animation frame. Everything that tracks the compass is
+positioned with `translate3d` (compositor) rather than `left` (layout), and
+carries **no CSS transition** — a transition restarts on every reading, which is
+what made the marker trail behind the phone. The smoothing filter is light (0.35
+per frame) so noise is damped without visible lag.
+
+**Compass strip.** A tick strip across the top spans the same field of view as
+the camera, with cardinal labels every 45°, minor ticks every 15°, and an orange
+Qibla tick. Ticks are created once and only their transforms are updated;
+anything outside the view is display-none'd rather than repositioned. Because the
+strip and the marker use the same degrees-to-pixels scale, the Qibla tick sits
+directly above the marker.
+
+**Found signal.** Within tolerance the ring turns solid orange, the marker scales
+up, a two-note WebAudio chime plays, the phone vibrates once, and a pill reading
+**"Qibla found"** appears under the ring. Entry and exit use hysteresis (enter at
+tolerance, leave at tolerance + 3°) so standing on the boundary cannot re-fire the
+chime. The `AudioContext` is created during the Start tap, since browsers refuse
+to start audio outside a gesture. Both the text and the chime are theme settings.
+
+**Marker placement.** The Kaaba marker is positioned horizontally by the signed
+angular difference between heading and Qibla bearing:
 
 ```
 left% = 50 + (delta / (FOV/2)) * 50
