@@ -40,6 +40,13 @@ With nothing usable to find, Chrome generated the letter tile from the store nam
 and added `assets/lqk-manifest.json`:
 
 - icons at 32 / 192 / 512 plus a 180px `apple-touch-icon`
+- `background_color` and `theme_color` are pastel orange (`#FFC08A`, the
+  `--lqk-gold` brand token). `background_color` is what Android paints behind the
+  icon on the launch splash screen — it was cream, and is the setting that
+  controls that surface. If a dark backdrop persists behind the icon *on the home
+  screen itself* rather than on the splash, the cause is transparency in
+  `App_Icons.png` and the fix is to re-export it with a solid background; no
+  manifest value can composite one in.
 - manifest linked with `crossorigin="anonymous"`, required because Shopify
   serves theme assets from `cdn.shopify.com` (cross-origin to the storefront)
   and a cross-origin manifest must be fetched with CORS
@@ -104,11 +111,29 @@ Singapore's.
 
 Three rows:
 
-1. **Controls, above the cards** — country dropdown, "Use exact location",
-   the locality chip, and the Qibla chip. Everything location-related.
+1. **Controls, centred above the cards** — country dropdown, "Use exact
+   location", the locality chip, and the Qibla chip. Everything location-related.
 2. **The prayer cards.**
 3. **Below the cards** — next-prayer countdown on the left; date, Hijri date and
-   the source chip (`Live · JAKIM`) on the right.
+   the source chip (`Live · JAKIM`) on the right. Centres too under 720px.
+
+### Qibla chip affordance
+
+The Qibla chip is the only thing in that row that navigates, so it has to read
+as a link without becoming loud:
+
+- **Accent tint** — cream fill and an orange border, against the flat grey of the
+  passive info chips. The one coloured item in the row is the one that goes
+  somewhere.
+- **Chevron** — a small `›` in orange, which slides 2px right on hover. This is
+  the strongest cheap signal that a control navigates rather than toggles.
+- **One-time pulse** — a soft orange ring expands three times on first view, then
+  stops. Once the visitor taps the chip, `lqk-qibla-seen` is written to
+  `localStorage` and the pulse never runs again. New visitors get the nudge;
+  returning visitors are not pestered. Suppressed under
+  `prefers-reduced-motion`.
+- **Tooltip and screen-reader text** — "Open the camera Qibla finder", set from a
+  theme setting so the wording can change without touching code.
 
 ### Locality detail
 

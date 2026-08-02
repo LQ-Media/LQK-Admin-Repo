@@ -8,8 +8,8 @@
   "scope": "https://www.littlequrankids.sg/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#FFF8F0",
-  "theme_color": "#FFF8F0",
+  "background_color": "#FFC08A",
+  "theme_color": "#FFC08A",
   "icons": [
     {
       "src": "https://cdn.shopify.com/s/files/1/0576/2924/5636/files/App_Icons.png?width=192",
