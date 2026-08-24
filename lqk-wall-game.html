@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LQK Wall Game</title>
+<style>
+  :root{
+    --ink:#0B2E22;        /* deep Nabawi green */
+    --ink2:#134034;
+    --gold:#E3B341;
+    --gold-lo:#A87A1C;
+    --cream:#FBF3E2;
+    --rose:#C9553D;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;background:var(--ink);overflow:hidden;
+    font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;color:var(--cream)}
+  #game{position:fixed;inset:0;width:100%;height:100%;display:none;cursor:crosshair}
+  /* The sampling video must stay on screen (tiny + almost invisible). Browsers are
+     allowed to stop decoding frames for a video that is display:none or parked far
+     off screen, and then the camera silently reads nothing. */
+  #vid{position:fixed;right:2px;bottom:2px;width:3px;height:3px;opacity:.01;
+    pointer-events:none}
+  #cam{display:none}
+
+  /* ---------- setup ---------- */
+  #setup{position:fixed;inset:0;overflow:auto;padding:28px;display:flex;
+    align-items:flex-start;justify-content:center;
+    background:radial-gradient(120% 90% at 50% 0%,var(--ink2),var(--ink) 70%)}
+  .panel{width:min(880px,100%)}
+  .brand{display:flex;align-items:baseline;gap:14px;margin-bottom:4px}
+  .brand h1{font-size:30px;letter-spacing:-.02em;font-weight:800}
+  .brand span{font-size:13px;color:var(--gold);letter-spacing:.18em;text-transform:uppercase}
+  .lede{color:#BFD3C7;font-size:15px;line-height:1.5;margin-bottom:22px;max-width:60ch}
+
+  .step{border:1px solid rgba(227,179,65,.28);border-radius:14px;padding:18px;margin-bottom:14px;
+    background:rgba(255,255,255,.03)}
+  .step h2{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);
+    margin-bottom:10px;display:flex;align-items:center;gap:9px}
+  .num{width:22px;height:22px;border-radius:50%;background:var(--gold);color:var(--ink);
+    display:grid;place-items:center;font-size:12px;font-weight:800;letter-spacing:0}
+  .step p{font-size:14px;color:#BFD3C7;line-height:1.55}
+
+  button,select{font:inherit}
+  .btn{background:var(--gold);color:#231A05;border:0;border-radius:9px;padding:11px 18px;
+    font-weight:700;cursor:pointer}
+  .btn:hover{background:#F0C458}
+  .btn.ghost{background:transparent;color:var(--cream);border:1px solid rgba(251,243,226,.35)}
+  .btn.ghost:hover{background:rgba(251,243,226,.08)}
+  .btn.big{width:100%;padding:16px;font-size:17px;margin-top:6px}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+  select{background:#0C231C;color:var(--cream);border:1px solid rgba(251,243,226,.25);
+    border-radius:8px;padding:10px;max-width:100%}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+  /* big plain-language blocker shown when the browser cannot give us a camera at all */
+  #blocker{border:1px solid rgba(201,85,61,.55);background:rgba(201,85,61,.12);
+    border-radius:14px;padding:16px 18px;margin-bottom:14px;display:none}
+  #blocker h3{font-size:15px;color:#FFD9CF;margin-bottom:8px}
+  #blocker p{font-size:14px;color:#F0D6CE;line-height:1.6;margin-bottom:8px}
+  #blocker code{display:block;background:rgba(0,0,0,.35);border-radius:8px;padding:9px 11px;
+    font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#FBF3E2;
+    margin:6px 0;white-space:pre-wrap;word-break:break-all}
+
+  #stage{position:relative;width:100%;margin-top:12px;border-radius:10px;overflow:hidden;
+    background:#000;display:none}
+  #stage video{width:100%;display:block}
+  #quadc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  #handles{position:absolute;inset:0}
+  .h{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;
+    border:3px solid var(--gold);background:rgba(227,179,65,.25);color:#fff;
+    display:grid;place-items:center;font-weight:800;font-size:14px;cursor:grab;touch-action:none}
+  .h:focus-visible{outline:3px solid var(--cream);outline-offset:2px}
+  .h.on{cursor:grabbing;background:rgba(227,179,65,.6)}
+
+  .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}
+  .mode{text-align:left;border:1px solid rgba(251,243,226,.2);background:rgba(255,255,255,.03);
+    border-radius:11px;padding:13px;cursor:pointer;color:var(--cream)}
+  .mode.sel{border-color:var(--gold);background:rgba(227,179,65,.12)}
+  .mode b{display:block;font-size:15px;margin-bottom:3px}
+  .mode i{font-style:normal;font-size:12.5px;color:#A9C0B3;line-height:1.4}
+
+  label.f{display:block;font-size:12.5px;color:#A9C0B3;margin-bottom:6px}
+  input[type=range]{width:100%;accent-color:var(--gold)}
+  .meterwrap{position:relative;margin-top:9px}
+  .meter{height:11px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}
+  .meter i{display:block;height:100%;width:0;background:var(--gold);transition:width .08s linear}
+  #tick{position:absolute;top:-4px;width:2px;height:19px;background:var(--cream);
+    border-radius:1px;pointer-events:none}
+  .note{font-size:12.5px;color:#8FA79A;margin-top:9px;line-height:1.5}
+  .warn{color:var(--rose)}
+  .ok{color:#8FD6A8}
+  /* screen corner anchors, visible during setup so you can match them in the camera */
+  .anchor{position:fixed;width:64px;height:64px;border:5px solid var(--gold);z-index:5;
+    color:var(--gold);font-weight:800;font-size:20px;display:grid;place-items:center;pointer-events:none}
+  .a1{top:0;left:0;border-right:0;border-bottom:0}
+  .a2{top:0;right:0;border-left:0;border-bottom:0}
+  .a3{bottom:0;right:0;border-left:0;border-top:0}
+  .a4{bottom:0;left:0;border-right:0;border-top:0}
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="anchor a1" id="an1">1</div><div class="anchor a2" id="an2">2</div>
+<div class="anchor a3" id="an3">3</div><div class="anchor a4" id="an4">4</div>
+
+<div id="setup"><div class="panel">
+  <div class="brand"><h1>Wall Game</h1><span>Little Quran Kids</span></div>
+  <p class="lede">Project onto the wall, point a camera at the same wall, and children play by
+    putting their hands on the glowing shapes. Their shadow is the button.</p>
+
+  <div id="blocker">
+    <h3 id="blockTitle">The camera cannot work the way this page was opened</h3>
+    <div id="blockBody"></div>
+  </div>
+
+  <div class="step">
+    <h2><span class="num">1</span> Full screen first</h2>
+    <p>Press this <b>before</b> you mark the corners. The gold brackets must be in the same place
+      during setup and during the game — if the picture changes size afterwards, every shape moves
+      and nothing triggers.</p>
+    <div class="row" style="margin-top:12px">
+      <button class="btn ghost" id="fsBtn">Go full screen</button>
+      <span class="note" style="margin:0" id="fsState"></span>
+    </div>
+  </div>
+
+  <div class="step">
+    <h2><span class="num">2</span> Turn on the camera</h2>
+    <p>Sit the camera next to the projector, facing the wall. It must see the whole projected
+      picture, plus a little margin. If your laptop has its own webcam, pick the right camera in
+      the list — the built-in one is usually pointing at you, not at the wall.</p>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="camBtn">Turn on camera</button>
+      <select id="camPick" style="display:none"></select>
+    </div>
+    <div id="camErr" class="note"></div>
+    <div id="stage">
+      <video id="vidPrev" playsinline muted autoplay></video>
+      <canvas id="quadc"></canvas>
+      <div id="handles"></div>
+    </div>
+  </div>
+
+  <div class="step">
+    <h2><span class="num">3</span> Mark the corners</h2>
+    <p>Drag dots <b>1 2 3 4</b> in the camera picture onto the matching gold corner brackets
+      you can see on the wall. Get this right and everything else works. Click a dot and use the
+      arrow keys for fine nudges.</p>
+    <div class="row" style="margin-top:12px">
+      <button class="btn ghost" id="resetQuad">Reset the four dots</button>
+      <span class="note" style="margin:0" id="calibState"></span>
+    </div>
+  </div>
+
+  <div class="step">
+    <h2><span class="num">4</span> Set the sensitivity</h2>
+    <label class="f">Higher number = harder to trigger. Start at 18. If shapes pop by themselves,
+      raise it. If hands don't register, lower it.</label>
+    <input type="range" id="sens" min="6" max="60" value="18">
+    <div class="row" style="justify-content:space-between;font-size:13px">
+      <span>Sensitive</span><b id="sensVal">18</b><span>Strict</span>
+    </div>
+    <div class="meterwrap"><div class="meter"><i id="meter"></i></div><div id="tick"></div></div>
+    <p class="note">The bar shows how much light is changing right now in the middle of the wall.
+      The white line is your number. Wave a hand at the middle of the wall — the bar should jump
+      well past the white line.</p>
+  </div>
+
+  <div class="step">
+    <h2><span class="num">5</span> Pick a game</h2>
+    <div class="modes">
+      <button class="mode sel" data-mode="lantern"><b>Catch the Lanterns</b>
+        <i>Lanterns light up around the wall. Touch them before they fade. No reading needed.</i></button>
+      <button class="mode" data-mode="huruf"><b>Find the Huruf</b>
+        <i>One Arabic letter is called out. Touch the matching letter on the wall.</i></button>
+      <button class="mode" data-mode="test"><b>Practice</b>
+        <i>No score, no timer. Shapes never run out — good for checking your setup.</i></button>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <label class="f" style="margin:0">Round length</label>
+      <select id="dur"><option value="60">60 sec</option><option value="90" selected>90 sec</option>
+        <option value="120">2 min</option><option value="180">3 min</option></select>
+    </div>
+    <button class="btn big" id="go" disabled>Start the game</button>
+    <p class="note" id="goNote">During play: <b>Esc</b> goes back here · <b>Space</b> pauses ·
+      <b>F</b> toggles full screen · you can also click shapes with the mouse to test without
+      anyone at the wall.</p>
+  </div>
+</div></div>
+
+<canvas id="game"></canvas>
+<video id="vid" playsinline muted autoplay></video>
+<canvas id="cam"></canvas>
+
+<script>
+"use strict";
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+
+/* ============ saved settings ============ */
+const SKEY="lqk.wallgame.v1";
+const S={quad:[{x:.14,y:.16},{x:.86,y:.16},{x:.86,y:.84},{x:.14,y:.84}],
+         thresh:18, mode:"lantern", dur:90, dev:"", calibFS:false};
+
+function saveS(){
+  try{ localStorage.setItem(SKEY,JSON.stringify(
+    {quad:S.quad,thresh:S.thresh,mode:S.mode,dur:S.dur,dev:S.dev,calibFS:S.calibFS})); }catch(e){}
+}
+function loadS(){
+  let o=null;
+  try{ o=JSON.parse(localStorage.getItem(SKEY)||"null"); }catch(e){}
+  if(!o) return false;
+  const q=o.quad;
+  if(Array.isArray(q)&&q.length===4&&q.every(p=>p&&isFinite(p.x)&&isFinite(p.y)))
+    S.quad=q.map(p=>({x:clamp(+p.x,0,1),y:clamp(+p.y,0,1)}));
+  if(isFinite(o.thresh)) S.thresh=clamp(+o.thresh,6,60);
+  if(o.mode==="lantern"||o.mode==="huruf"||o.mode==="test") S.mode=o.mode;
+  if([60,90,120,180].indexOf(+o.dur)>=0) S.dur=+o.dur;
+  if(typeof o.dev==="string") S.dev=o.dev;
+  S.calibFS=!!o.calibFS;
+  return true;
+}
+const hadSaved=loadS();
+
+/* ============ camera ============ */
+const CAMW=192, CAMH=144;
+const vid=$("#vid"), vidPrev=$("#vidPrev");
+const camc=$("#cam"), camx=camc.getContext("2d",{willReadFrequently:true});
+camc.width=CAMW; camc.height=CAMH;
+const gray=new Float32Array(CAMW*CAMH);
+let camOn=false, stream=null, vtrack=null;
+let lastVT=-1, lastFrameAt=0, restartAt=0, starting=false;
+
+const isFile=location.protocol==="file:";
+const hasGUM=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia);
+const serveCmd="python3 -m http.server 8000";
+
+function showBlocker(title,html){
+  $("#blockTitle").textContent=title;
+  $("#blockBody").innerHTML=html;
+  $("#blocker").style.display="block";
+}
+function bootCheck(){
+  if(!hasGUM||isFile||!window.isSecureContext){
+    showBlocker(
+      isFile ? "Chrome will not give the camera to a file opened directly"
+             : "This address cannot use the camera",
+      "<p>"+(isFile
+        ? "You opened this page straight from a folder, so the address starts with "
+          +"<b>file://</b>. Browsers refuse camera access there. Nothing is wrong with the file."
+        : "Browsers only allow the camera on <b>http://localhost</b> or on <b>https://</b>. "
+          +"This page is on <b>"+location.protocol+"//"+location.hostname+"</b>.")+"</p>"
+      +"<p>Do this instead, on the laptop that runs the projector:</p>"
+      +"<p>1. Double-click <b>START-HERE.command</b> (Mac) or <b>START-HERE.bat</b> (Windows) "
+      +"in the same folder as this file. A black window opens and the game opens by itself. "
+      +"Leave the black window open while you play.</p>"
+      +"<p>2. Or type this in Terminal / Command Prompt yourself:</p>"
+      +"<code>"+serveCmd+"</code>"
+      +"<p>then open <b>http://localhost:8000/lqk-wall-game.html</b></p>"
+      +"<p>This still works with no internet — it all stays on the laptop.</p>");
+  }
+}
+bootCheck();
+
+function camNote(msg,cls){
+  const el=$("#camErr");
+  el.textContent=msg||"";
+  el.className="note"+(cls?" "+cls:"");
+}
+function explain(e){
+  const n=(e&&e.name)||"";
+  if(n==="NotAllowedError"||n==="SecurityError"){
+    return isFile
+      ? "The browser refused the camera because this page was opened as a file. Follow the red box above."
+      : "You (or the browser) blocked the camera. Click the camera icon in the address bar, choose Allow, then press this button again.";
+  }
+  if(n==="NotFoundError"||n==="DevicesNotFoundError")
+    return "No camera found. Plug in the webcam, or start Iriun/DroidCam on the phone first, then press this button again.";
+  if(n==="NotReadableError"||n==="TrackStartError")
+    return "The camera is there but another app is using it. Close Zoom / Teams / Photo Booth / the camera app, then press this button again.";
+  if(n==="OverconstrainedError")
+    return "That camera would not run at the size we asked for. Pick a different camera in the list.";
+  if(n==="AbortError") return "The camera stopped while starting up. Press this button again.";
+  if(e&&e.message==="NO_API")
+    return "This browser has no camera support at this address. Use Chrome, and follow the red box above.";
+  return "Camera error ("+(n||"unknown")+"): "+((e&&e.message)||"no details")
+    +". Try a different camera in the list, or restart the browser.";
+}
+
+function constraintList(id){
+  const base={width:{ideal:640},height:{ideal:480},frameRate:{ideal:30}};
+  const l=[];
+  if(id){
+    l.push(Object.assign({deviceId:{exact:id}},base));
+    l.push({deviceId:{exact:id}});
+  }
+  l.push(Object.assign({facingMode:{ideal:"environment"}},base));
+  l.push(base);
+  l.push(true);
+  return l;
+}
+async function tryGUM(list){
+  let last=null;
+  for(const c of list){
+    try{ return await navigator.mediaDevices.getUserMedia({video:c,audio:false}); }
+    catch(e){
+      last=e;
+      /* a refusal will not get better with a looser request — stop asking */
+      if(e&&(e.name==="NotAllowedError"||e.name==="SecurityError")) throw e;
+    }
+  }
+  throw last||new Error("NO_API");
+}
+function waitForFrames(v,ms){
+  return new Promise(res=>{
+    const t0=performance.now();
+    (function poll(){
+      if(v.readyState>=2&&v.videoWidth>0) return res(true);
+      if(performance.now()-t0>ms) return res(false);
+      requestAnimationFrame(poll);
+    })();
+  });
+}
+function stopStream(){
+  if(stream){ stream.getTracks().forEach(t=>{try{t.stop();}catch(e){}}); }
+  stream=null; vtrack=null; camOn=false; lastVT=-1;
+}
+async function fillPicker(){
+  let devs=[];
+  try{ devs=(await navigator.mediaDevices.enumerateDevices()).filter(d=>d.kind==="videoinput"); }
+  catch(e){ return; }
+  const sel=$("#camPick");
+  const cur=(vtrack&&vtrack.getSettings&&vtrack.getSettings().deviceId)||S.dev||"";
+  sel.innerHTML="";
+  devs.forEach((d,i)=>{
+    const o=document.createElement("option");
+    o.value=d.deviceId; o.textContent=d.label||("Camera "+(i+1));
+    sel.appendChild(o);
+  });
+  sel.style.display=devs.length?"inline-block":"none";
+  if(cur&&devs.some(d=>d.deviceId===cur)) sel.value=cur;
+}
+
+async function startCam(id,quiet){
+  if(starting) return;
+  starting=true;
+  $("#camBtn").disabled=true;
+  if(!quiet) camNote("Starting the camera…");
+  try{
+    if(!hasGUM) throw new Error("NO_API");
+    stopStream();
+    stream=await tryGUM(constraintList(id||""));
+    vtrack=stream.getVideoTracks()[0]||null;
+
+    vid.srcObject=stream; vidPrev.srcObject=stream;
+    try{ await vid.play(); }catch(e){}
+    try{ await vidPrev.play(); }catch(e){}
+
+    const ready=await waitForFrames(vid,6000);
+    if(!ready) throw new Error("The camera opened but sent no picture. Unplug and replug it, or pick another camera.");
+
+    camOn=true; lastFrameAt=performance.now(); centreBase=null;
+    if(vtrack){
+      const st=(vtrack.getSettings&&vtrack.getSettings())||{};
+      if(st.deviceId){ S.dev=st.deviceId; saveS(); }
+      vtrack.addEventListener("ended",()=>{ camOn=false; camNote("The camera stopped (unplugged, or the phone app closed). Press “Restart camera”.","warn"); });
+      vtrack.addEventListener("mute",()=>{ camNote("The camera went quiet — it may be waking up.","warn"); });
+      vtrack.addEventListener("unmute",()=>{ camNote("Camera is running: "+vid.videoWidth+"×"+vid.videoHeight+".","ok"); });
+    }
+    $("#stage").style.display="block";
+    $("#go").disabled=false;
+    $("#camBtn").textContent="Restart camera";
+    camNote("Camera is running: "+vid.videoWidth+"×"+vid.videoHeight+
+      ". Now drag dots 1 2 3 4 onto the gold brackets.","ok");
+    await fillPicker();
+    drawQuad();
+    rebaseline(SETTLE*2);
+  }catch(e){
+    stopStream();
+    $("#go").disabled=true;
+    camNote(typeof e==="object"&&e&&e.name?explain(e):(e&&e.message)||String(e),"warn");
+  }finally{
+    starting=false;
+    $("#camBtn").disabled=false;
+  }
+}
+$("#camBtn").onclick=()=>startCam($("#camPick").value||S.dev||"");
+$("#camPick").onchange=e=>{S.dev=e.target.value; saveS(); startCam(e.target.value);};
+
+/* If the laptop sleeps, the track usually survives but stops sending frames.
+   Nudge it awake when the page comes back, and retry quietly during play. */
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState!=="visible"||!stream) return;
+  try{ vid.play(); vidPrev.play(); }catch(e){}
+  if(performance.now()-lastFrameAt>1500) startCam(S.dev,true);
+});
+
+function grab(){
+  if(!camOn) return false;
+  if(vid.readyState<2||!vid.videoWidth) return false;
+  /* Only work on a NEW camera frame. The screen redraws at 60fps but the camera
+     sends about 30, so without this test the same frame is measured twice and
+     "2 frames in a row" stops meaning anything. */
+  if(vid.currentTime===lastVT) return false;
+  lastVT=vid.currentTime;
+  lastFrameAt=performance.now();
+  camx.drawImage(vid,0,0,CAMW,CAMH);
+  const d=camx.getImageData(0,0,CAMW,CAMH).data;
+  for(let i=0,j=0;i<d.length;i+=4,j++) gray[j]=0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+  return true;
+}
+
+/* ============ calibration quad (normalised camera coords) ============ */
+const hbox=$("#handles"), hEls=[];
+const qc=$("#quadc"), qx=qc.getContext("2d");
+
+function markCalib(){
+  S.calibFS=!!document.fullscreenElement;
+  saveS(); drawQuad(); fsState();
+}
+for(let i=0;i<4;i++){
+  const el=document.createElement("div");
+  el.className="h"; el.textContent=i+1; el.tabIndex=0;
+  el.setAttribute("aria-label","corner "+(i+1));
+  hbox.appendChild(el); hEls.push(el);
+  const move=ev=>{
+    const r=hbox.getBoundingClientRect();
+    if(!r.width||!r.height) return;
+    S.quad[i].x=clamp((ev.clientX-r.left)/r.width,0,1);
+    S.quad[i].y=clamp((ev.clientY-r.top)/r.height,0,1);
+    place(); ev.preventDefault();
+  };
+  const up=ev=>{
+    if(!el.classList.contains("on")) return;
+    el.classList.remove("on");
+    try{ el.releasePointerCapture(ev.pointerId); }catch(e){}
+    markCalib();
+  };
+  el.addEventListener("pointerdown",e=>{
+    el.classList.add("on"); el.focus();
+    try{ el.setPointerCapture(e.pointerId); }catch(e2){}
+    e.preventDefault();
+  });
+  el.addEventListener("pointermove",e=>{ if(el.classList.contains("on")) move(e); });
+  el.addEventListener("pointerup",up);
+  el.addEventListener("pointercancel",up);
+  el.addEventListener("keydown",e=>{
+    const step=(e.shiftKey?0.02:0.004);
+    let used=true;
+    if(e.key==="ArrowLeft")      S.quad[i].x=clamp(S.quad[i].x-step,0,1);
+    else if(e.key==="ArrowRight")S.quad[i].x=clamp(S.quad[i].x+step,0,1);
+    else if(e.key==="ArrowUp")   S.quad[i].y=clamp(S.quad[i].y-step,0,1);
+    else if(e.key==="ArrowDown") S.quad[i].y=clamp(S.quad[i].y+step,0,1);
+    else used=false;
+    if(used){ e.preventDefault(); e.stopPropagation(); place(); markCalib(); }
+  });
+}
+function place(){
+  hEls.forEach((el,i)=>{el.style.left=(S.quad[i].x*100)+"%"; el.style.top=(S.quad[i].y*100)+"%";});
+  drawQuad();
+}
+function drawQuad(){
+  const w=qc.clientWidth|0, h=qc.clientHeight|0;
+  if(!w||!h) return;
+  if(qc.width!==w||qc.height!==h){ qc.width=w; qc.height=h; }
+  qx.clearRect(0,0,w,h);
+  qx.strokeStyle="rgba(227,179,65,.85)"; qx.lineWidth=2;
+  qx.beginPath();
+  S.quad.forEach((p,i)=>{ const x=p.x*w,y=p.y*h; i?qx.lineTo(x,y):qx.moveTo(x,y); });
+  qx.closePath(); qx.stroke();
+  /* the patch the live meter is reading */
+  const c=mapUV(.5,.5), rad=quadSpan()*0.05;
+  qx.strokeStyle="rgba(251,243,226,.8)"; qx.lineWidth=1.5;
+  qx.strokeRect((c.x-rad)/CAMW*w,(c.y-rad)/CAMH*h,rad*2/CAMW*w,rad*2/CAMH*h);
+}
+$("#resetQuad").onclick=()=>{
+  S.quad=[{x:.14,y:.16},{x:.86,y:.16},{x:.86,y:.84},{x:.14,y:.84}];
+  place(); markCalib();
+};
+place();
+
+function mapUV(u,v){
+  const q=S.quad;
+  const tx=q[0].x+(q[1].x-q[0].x)*u, ty=q[0].y+(q[1].y-q[0].y)*u;
+  const bx=q[3].x+(q[2].x-q[3].x)*u, by=q[3].y+(q[2].y-q[3].y)*u;
+  return {x:(tx+(bx-tx)*v)*CAMW, y:(ty+(by-ty)*v)*CAMH};
+}
+function sample(u,v,rad){
+  const p=mapUV(u,v); let sum=0,n=0;
+  const x0=Math.max(0,(p.x-rad)|0), x1=Math.min(CAMW-1,(p.x+rad)|0);
+  const y0=Math.max(0,(p.y-rad)|0), y1=Math.min(CAMH-1,(p.y+rad)|0);
+  for(let y=y0;y<=y1;y++){const o=y*CAMW; for(let x=x0;x<=x1;x++){sum+=gray[o+x];n++;}}
+  return n?sum/n:0;
+}
+function quadSpan(){const q=S.quad;return Math.hypot((q[1].x-q[0].x)*CAMW,(q[1].y-q[0].y)*CAMH)||CAMW;}
+
+/* ---------- setup controls ---------- */
+function paintTick(){
+  /* the meter shows 0..60 of light change, so the line goes at thresh/60 */
+  $("#tick").style.left=(clamp(S.thresh/60,0,1)*100)+"%";
+  $("#sensVal").textContent=S.thresh;
+  $("#sens").value=S.thresh;
+}
+$("#sens").oninput=e=>{S.thresh=+e.target.value; paintTick(); saveS();};
+$("#dur").onchange=e=>{S.dur=+e.target.value; saveS();};
+document.querySelectorAll(".mode").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".mode").forEach(x=>x.classList.remove("sel"));
+  b.classList.add("sel"); S.mode=b.dataset.mode; saveS();});
+
+function applySaved(){
+  paintTick();
+  $("#dur").value=String(S.dur);
+  document.querySelectorAll(".mode").forEach(x=>x.classList.toggle("sel",x.dataset.mode===S.mode));
+  $("#calibState").textContent=hadSaved
+    ? "Corner dots and sensitivity were remembered from last time — check them, then start."
+    : "";
+  $("#calibState").className="note"+(hadSaved?" ok":"");
+}
+applySaved();
+
+/* fullscreen: calibration is only valid while the picture stays the same size */
+function toggleFS(){
+  if(document.fullscreenElement){ document.exitFullscreen().catch(()=>{}); }
+  else{ (document.documentElement.requestFullscreen
+        ? document.documentElement.requestFullscreen()
+        : Promise.reject()).catch(()=>{}); }
+}
+function fsState(){
+  const fs=!!document.fullscreenElement;
+  $("#fsBtn").textContent=fs?"Leave full screen":"Go full screen";
+  const mismatch=fs!==S.calibFS;
+  $("#fsState").textContent=fs
+    ? (mismatch?"Full screen ON — the dots were set at a different size. Check them again."
+               :"Full screen ON.")
+    : (mismatch?"Full screen OFF — the dots were set in full screen. Turn it back on or re-mark them."
+               :"Full screen is off. Turn it on before marking the corners.");
+  $("#fsState").className="note "+(mismatch?"warn":"ok");
+}
+$("#fsBtn").onclick=toggleFS;
+document.addEventListener("fullscreenchange",()=>{
+  fsState();
+  resize();
+  if(playing) rebaseline(SETTLE*2);   /* the whole picture just moved */
+  drawQuad();
+});
+fsState();
+
+/* live meter while setting up */
+let centreBase=null;
+setInterval(()=>{
+  if(playing) return;
+  if(!camOn){ $("#meter").style.width="0%"; return; }
+  if(!grab()) return;
+  const c=sample(.5,.5,quadSpan()*0.05);
+  if(centreBase===null){centreBase=c;return;}
+  const d=Math.abs(c-centreBase);
+  centreBase+=(c-centreBase)*0.05;
+  $("#meter").style.width=Math.min(100,d/60*100)+"%";
+},60);
+
+/* ============ game ============ */
+const SETTLE=450;              // ms to let projector+camera catch up before arming a shape
+let playing=false, paused=false, over=false, targets=[], score=0, miss=0;
+let tEnd=0, holdUntil=0, pausedAt=0;
+let ask=null, bursts=[], banner=null, askTimer=0, dbgD=0;
+
+const cv=$("#game"), g=cv.getContext("2d");
+let W=0,H=0,DPR=1;
+function resize(){
+  DPR=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;
+  cv.width=Math.round(W*DPR);cv.height=Math.round(H*DPR);g.setTransform(DPR,0,0,DPR,0,0);
+  if(playing) rebaseline(SETTLE);      /* every target moved in camera space */
+  else if(over){ bg(); endCard(); }    /* keep the end card visible */
+}
+addEventListener("resize",()=>{resize(); drawQuad();});
+resize();
+
+const LETTERS="ا ب ت ث ج ح د ذ ر ز س ش ص ض ط ع ف ق ك ل م ن ه و ي".split(" ");
+const NAMES={"ا":"Alif","ب":"Ba","ت":"Ta","ث":"Tsa","ج":"Jim","ح":"Ha","د":"Dal","ذ":"Dzal",
+"ر":"Ra","ز":"Zai","س":"Sin","ش":"Syin","ص":"Sod","ض":"Dod","ط":"To","ع":"Ain","ف":"Fa",
+"ق":"Qof","ك":"Kaf","ل":"Lam","م":"Mim","ن":"Nun","ه":"Ha","و":"Wau","ي":"Ya"};
+
+function rebaseline(delay){holdUntil=performance.now()+delay; targets.forEach(t=>t.base=null);}
+
+function targetR(){ return Math.min(W,H)*0.115; }
+
+/* The band a shape may sit in. Measured to the EDGE of the shape, not its centre,
+   so a lantern can never creep up into the score / timer / letter prompt. */
+function band(){
+  /* 1.25 not 1.0: a lantern's hanger is drawn r*1.22 above its centre */
+  const rv=targetR()*1.25/H;
+  const hudBottom=(S.mode==="huruf")?0.185:0.10;
+  return {v0:hudBottom+rv, v1:1-0.02-rv};
+}
+function put(u,v,kind,letter){
+  targets.push({u,v,r:targetR(),kind:kind||"lantern",letter:letter||"",
+    born:performance.now(),life:0,base:null,streak:0,pop:0});
+}
+function spawn(kind,letter){
+  const r=targetR();
+  const pad=r/W+0.02;
+  const b=band();
+  if(b.v1<=b.v0){ put(0.5,0.5,kind,letter); return true; }   /* absurdly small window */
+  for(let tries=0;tries<60;tries++){
+    const u=pad+Math.random()*(1-2*pad);
+    const v=b.v0+Math.random()*(b.v1-b.v0);
+    const x=u*W,y=v*H;
+    if(targets.some(t=>Math.hypot(t.u*W-x,t.v*H-y)<r*2.4)) continue;
+    put(u,v,kind,letter);
+    return true;
+  }
+  return false;
+}
+
+function newAsk(){
+  askTimer=0;
+  if(!playing) return;
+  targets.length=0; bursts.length=0; banner=null;
+  /* never put two letters with the same spoken name on the wall at once
+     (ح and ه are both "Ha") — the child could not tell which one was called */
+  const shuffled=[...LETTERS].sort(()=>Math.random()-.5);
+  const pool=[], used=new Set();
+  for(const L of shuffled){
+    const n=NAMES[L]||L;
+    if(used.has(n)) continue;
+    used.add(n); pool.push(L);
+    if(pool.length===4) break;
+  }
+  ask=pool[(Math.random()*pool.length)|0];
+  /* Fixed slots, not random placement: all four letters must be on the wall every
+     time. A random spawn can fail to find room, and if the letter that failed was
+     the one being asked for, the child could never get it right. */
+  const b=band(), pad=targetR()/W+0.03;
+  const uL=clamp(0.28,pad,1-pad), uR=clamp(0.72,pad,1-pad);
+  const vT=b.v0+(b.v1-b.v0)*0.18, vB=b.v0+(b.v1-b.v0)*0.82;
+  const slots=[{u:uL,v:vT},{u:uR,v:vT},{u:uL,v:vB},{u:uR,v:vB}]
+    .sort(()=>Math.random()-.5);
+  pool.forEach((L,i)=>{
+    const s=slots[i]||{u:0.5,v:(b.v0+b.v1)/2};
+    const j=0.03;   /* a little jitter so it never looks like a fixed grid */
+    put(clamp(s.u+(Math.random()-.5)*j,pad,1-pad),
+        clamp(s.v+(Math.random()-.5)*j,b.v0,b.v1),"letter",L);
+  });
+  rebaseline(SETTLE);
+}
+
+function hit(t){
+  const i=targets.indexOf(t);
+  if(i<0) return;
+  targets.splice(i,1);
+  const ok = S.mode!=="huruf" || t.letter===ask;
+  if(ok){score++; blip(880,.07);} else {miss++; blip(180,.12);}
+  bursts.push({x:t.u*W,y:t.v*H,r:t.r,t:performance.now(),ok});
+  if(S.mode==="huruf"){
+    banner={ok,t:performance.now(),letter:t.letter};
+    if(askTimer) clearTimeout(askTimer);
+    askTimer=setTimeout(newAsk,650);
+  }
+  rebaseline(320);
+}
+
+/* audio blip */
+let AC=null;
+function audioReady(){
+  try{
+    AC=AC||new (window.AudioContext||window.webkitAudioContext)();
+    if(AC.state==="suspended") AC.resume();
+  }catch(e){}
+}
+function blip(f,d){
+  try{
+    if(!AC) return;                 /* only ever created from a real click/keypress */
+    if(AC.state==="suspended") AC.resume();
+    const o=AC.createOscillator(),gn=AC.createGain();
+    o.type="sine";o.frequency.value=f;gn.gain.value=.18;
+    o.connect(gn);gn.connect(AC.destination);o.start();
+    gn.gain.exponentialRampToValueAtTime(.001,AC.currentTime+d);
+    o.stop(AC.currentTime+d+.02);
+  }catch(e){}
+}
+
+function detect(now){
+  if(!grab()||now<holdUntil) return;
+  const live=[],fired=[];
+  let maxD=0;
+  for(const t of targets){
+    if(now-t.born<SETTLE) continue;
+    const rad=Math.max(2,quadSpan()*(t.r/W)*0.55);
+    const cur=sample(t.u,t.v,rad);
+    if(t.base===null){t.base=cur;t.streak=0;continue;}
+    live.push(t);
+    const d=Math.abs(t.base-cur);
+    if(d>maxD) maxD=d;
+    if(d>S.thresh){t.streak++; if(t.streak>=2) fired.push(t);}
+    else {t.streak=0; t.base+=(cur-t.base)*0.02;}
+  }
+  dbgD=maxD;
+  /* room lights changed / projector flashed -> everything moved at once. Ignore, re-baseline. */
+  if(live.length>=3 && fired.length>=live.length*0.8){rebaseline(250);return;}
+  fired.forEach(t=>{ if(targets.includes(t)) hit(t); });
+}
+
+/* ---------- drawing ---------- */
+function bg(){
+  const gr=g.createRadialGradient(W/2,H*0.42,0,W/2,H*0.42,Math.max(W,H)*0.75);
+  gr.addColorStop(0,"#134034"); gr.addColorStop(1,"#08211A");
+  g.fillStyle=gr; g.fillRect(0,0,W,H);
+  g.strokeStyle="rgba(227,179,65,.16)"; g.lineWidth=2;
+  const s=Math.min(W,H)*0.11;
+  for(let y=-s;y<H+s;y+=s) for(let x=-s;x<W+s;x+=s){
+    g.beginPath();g.moveTo(x,y+s/2);g.lineTo(x+s/2,y);g.lineTo(x+s,y+s/2);g.lineTo(x+s/2,y+s);
+    g.closePath();g.stroke();
+  }
+}
+function lantern(t,a){
+  const x=t.u*W,y=t.v*H,r=t.r*(0.85+0.15*a);
+  g.save();
+  g.shadowColor="rgba(227,179,65,.9)"; g.shadowBlur=r*0.9;
+  g.fillStyle="#FBF3E2"; g.beginPath();
+  g.moveTo(x,y-r); g.quadraticCurveTo(x+r*.92,y-r*.25,x+r*.55,y+r*.8);
+  g.lineTo(x-r*.55,y+r*.8); g.quadraticCurveTo(x-r*.92,y-r*.25,x,y-r);
+  g.closePath(); g.fill();
+  g.shadowBlur=0;
+  g.fillStyle="#E3B341";
+  g.fillRect(x-r*.34,y-r*1.22,r*.68,r*.26);
+  g.fillRect(x-r*.62,y+r*.8,r*1.24,r*.24);
+  g.strokeStyle="rgba(168,122,28,.55)"; g.lineWidth=r*.06;
+  g.beginPath();g.moveTo(x,y-r*.62);g.lineTo(x,y+r*.6);g.stroke();
+  g.restore();
+}
+function medallion(t,a){
+  const x=t.u*W,y=t.v*H,r=t.r*(0.85+0.15*a);
+  g.save();
+  g.shadowColor="rgba(227,179,65,.8)"; g.shadowBlur=r*0.8;
+  g.fillStyle="#FBF3E2"; g.beginPath(); g.arc(x,y,r,0,7); g.fill();
+  g.shadowBlur=0;
+  g.lineWidth=r*.1; g.strokeStyle="#E3B341"; g.beginPath(); g.arc(x,y,r*.88,0,7); g.stroke();
+  g.fillStyle="#0B2E22"; g.textAlign="center"; g.textBaseline="middle";
+  g.font="700 "+(r*1.15)+"px 'Traditional Arabic','Scheherazade New','Amiri',serif";
+  g.fillText(t.letter,x,y+r*.06);
+  g.restore();
+}
+function hud(now){
+  g.textBaseline="top";
+  g.fillStyle="#E3B341"; g.font="700 "+Math.round(H*.05)+"px system-ui,sans-serif";
+  g.textAlign="left"; g.fillText(score,W*.035,H*.035);
+  g.fillStyle="rgba(251,243,226,.55)"; g.font="600 "+Math.round(H*.018)+"px system-ui,sans-serif";
+  g.fillText("SCORE",W*.035,H*.035+Math.round(H*.055));
+
+  if(S.mode!=="test"){
+    const left=Math.max(0,Math.ceil((tEnd-now)/1000));
+    g.textAlign="right"; g.fillStyle=left<=10?"#C9553D":"#E3B341";
+    g.font="700 "+Math.round(H*.05)+"px system-ui,sans-serif";
+    g.fillText((left/60|0)+":"+String(left%60).padStart(2,"0"),W*.965,H*.035);
+    g.fillStyle="rgba(251,243,226,.55)"; g.font="600 "+Math.round(H*.018)+"px system-ui,sans-serif";
+    g.fillText("TIME",W*.965,H*.035+Math.round(H*.055));
+  }
+  if(S.mode==="huruf"&&ask){
+    g.textAlign="center"; g.fillStyle="rgba(251,243,226,.6)";
+    g.font="600 "+Math.round(H*.022)+"px system-ui,sans-serif";
+    g.fillText("TOUCH THE LETTER",W/2,H*.035);
+    g.fillStyle="#FBF3E2";
+    g.font="700 "+Math.round(H*.085)+"px 'Traditional Arabic','Scheherazade New','Amiri',serif";
+    g.fillText(ask,W/2,H*.055);
+    g.fillStyle="#E3B341"; g.font="700 "+Math.round(H*.026)+"px system-ui,sans-serif";
+    g.fillText(NAMES[ask]||"",W/2,H*.055+Math.round(H*.105));
+  }
+  /* Practice mode is the setup tool, so it shows what the camera is measuring.
+     Kept at the very top, well clear of the band where shapes spawn. */
+  if(S.mode==="test"){
+    g.textAlign="left"; g.textBaseline="top";
+    g.font="600 "+Math.round(H*.02)+"px system-ui,sans-serif";
+    const alive=camOn&&(now-lastFrameAt<1000);
+    g.fillStyle=alive?"rgba(143,214,168,.9)":"#C9553D";
+    g.fillText(alive?("camera ok  ·  change "+dbgD.toFixed(0)+" / need "+S.thresh)
+                    :"NO CAMERA PICTURE",W*.035,H*.005);
+  }
+}
+function camWarnOverlay(now){
+  if(!playing||S.mode==="test") return;
+  if(camOn&&now-lastFrameAt<1500) return;
+  g.save();
+  g.textAlign="center"; g.textBaseline="top";
+  g.fillStyle="#C9553D"; g.font="700 "+Math.round(H*.022)+"px system-ui,sans-serif";
+  g.fillText("CAMERA NOT SEEING ANYTHING — press Esc, then Restart camera",W/2,H*.005);
+  g.restore();
+}
+function effects(now){
+  bursts=bursts.filter(b=>now-b.t<520);
+  for(const b of bursts){
+    const p=(now-b.t)/520;
+    g.save(); g.globalAlpha=1-p;
+    g.strokeStyle=b.ok?"#E3B341":"#C9553D"; g.lineWidth=b.r*.16*(1-p);
+    g.beginPath(); g.arc(b.x,b.y,b.r*(1+p*1.6),0,7); g.stroke(); g.restore();
+  }
+  if(banner){
+    if(now-banner.t<600){
+      const p=(now-banner.t)/600;
+      g.save(); g.globalAlpha=1-p*p; g.textAlign="center"; g.textBaseline="middle";
+      g.fillStyle=banner.ok?"#E3B341":"#C9553D";
+      g.font="800 "+Math.round(H*.09)+"px system-ui,sans-serif";
+      g.fillText(banner.ok?"BETUL!":"CUBA LAGI",W/2,H*.5); g.restore();
+    } else banner=null;
+  }
+}
+function endCard(){
+  g.fillStyle="rgba(8,33,26,.88)"; g.fillRect(0,0,W,H);
+  g.textAlign="center"; g.textBaseline="middle";
+  g.fillStyle="#E3B341"; g.font="700 "+Math.round(H*.035)+"px system-ui,sans-serif";
+  g.fillText("MASYA ALLAH",W/2,H*.36);
+  g.fillStyle="#FBF3E2"; g.font="800 "+Math.round(H*.2)+"px system-ui,sans-serif";
+  g.fillText(score,W/2,H*.53);
+  if(S.mode==="huruf"){
+    g.fillStyle="rgba(251,243,226,.75)"; g.font="700 "+Math.round(H*.028)+"px system-ui,sans-serif";
+    g.fillText(score+" right  ·  "+miss+" to try again",W/2,H*.65);
+  }
+  g.fillStyle="rgba(251,243,226,.6)"; g.font="600 "+Math.round(H*.024)+"px system-ui,sans-serif";
+  g.fillText("Press SPACE for another round  ·  ESC for setup",W/2,H*.74);
+}
+function pauseCard(){
+  g.fillStyle="rgba(8,33,26,.8)"; g.fillRect(0,0,W,H);
+  g.textAlign="center"; g.textBaseline="middle";
+  g.fillStyle="#E3B341"; g.font="800 "+Math.round(H*.08)+"px system-ui,sans-serif";
+  g.fillText("PAUSED",W/2,H*.47);
+  g.fillStyle="rgba(251,243,226,.6)"; g.font="600 "+Math.round(H*.024)+"px system-ui,sans-serif";
+  g.fillText("SPACE to carry on  ·  ESC for setup",W/2,H*.58);
+}
+
+/* ---------- loop ---------- */
+function frame(now){
+  requestAnimationFrame(frame);
+  if(!playing||paused) return;
+
+  /* the camera died mid-round: keep trying quietly, the game stays up */
+  if(camOn&&now-lastFrameAt>2500&&now>restartAt&&!starting){
+    restartAt=now+5000;
+    startCam(S.dev,true);
+  }
+
+  if(S.mode!=="test"&&now>=tEnd){playing=false;over=true;bg();endCard();return;}
+
+  /* keep the wall stocked */
+  if(S.mode==="lantern"||S.mode==="test"){
+    const want=S.mode==="test"?3:4;
+    while(targets.length<want) if(!spawn("lantern","")) break;
+    if(S.mode==="lantern"){
+      const stale=targets.filter(t=>now-t.born>7000);
+      stale.forEach(t=>{const i=targets.indexOf(t); if(i>=0) targets.splice(i,1);});
+      if(stale.length) rebaseline(SETTLE);
+    }
+  } else if(S.mode==="huruf" && !targets.length && !askTimer) newAsk();
+
+  detect(now);
+
+  bg();
+  for(const t of targets){
+    const a=Math.min(1,(now-t.born)/260);
+    if(t.kind==="letter") medallion(t,a); else lantern(t,a);
+  }
+  effects(now);
+  hud(now);
+  camWarnOverlay(now);
+}
+requestAnimationFrame(frame);
+
+function start(){
+  audioReady();
+  if(askTimer){clearTimeout(askTimer); askTimer=0;}
+  $("#setup").style.display="none";
+  document.querySelectorAll(".anchor").forEach(a=>a.style.display="none");
+  cv.style.display="block"; resize();
+  score=0;miss=0;targets.length=0;bursts.length=0;banner=null;ask=null;
+  over=false;paused=false;dbgD=0;
+  tEnd=performance.now()+S.dur*1000;
+  playing=true;
+  if(S.mode==="huruf") newAsk(); else rebaseline(SETTLE);
+}
+function toSetup(){
+  playing=false; over=false; paused=false;
+  if(askTimer){clearTimeout(askTimer); askTimer=0;}
+  cv.style.display="none"; $("#setup").style.display="flex";
+  document.querySelectorAll(".anchor").forEach(a=>a.style.display="grid");
+  centreBase=null;
+  fsState(); drawQuad();
+}
+$("#go").onclick=()=>{
+  if(!camOn){ camNote("Turn the camera on first.","warn"); return; }
+  start();
+};
+addEventListener("keydown",e=>{
+  if(e.key==="Escape"){ if(playing||over) toSetup(); return; }
+  if(e.key==="f"||e.key==="F"){
+    if(e.target&&/^(INPUT|SELECT|TEXTAREA)$/.test(e.target.tagName)) return;
+    e.preventDefault(); toggleFS(); return;
+  }
+  if(e.code==="Space"){
+    if(!playing&&!over) return;               /* let the setup page use Space normally */
+    e.preventDefault();
+    audioReady();
+    if(over){ start(); return; }
+    if(paused){
+      tEnd+=performance.now()-pausedAt;       /* a pause must not eat the clock */
+      paused=false;
+      rebaseline(SETTLE);
+    } else {
+      paused=true; pausedAt=performance.now();
+      pauseCard();
+    }
+  }
+});
+cv.addEventListener("pointerdown",e=>{           // mouse fallback for testing
+  audioReady();
+  if(over){start();return;}
+  if(!playing||paused) return;
+  const t=targets.find(t=>Math.hypot(t.u*W-e.clientX,t.v*H-e.clientY)<t.r);
+  if(t) hit(t);
+});
+
+/* if we already know which camera he used last time, offer to reopen it right away */
+if(hasGUM&&S.dev&&!isFile&&window.isSecureContext) camNote("Press “Turn on camera” — the camera you used last time will be reopened.");
+</script>
+</body>
+</html>
