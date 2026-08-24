@@ -25,8 +25,19 @@ A small black window opens and the game opens by itself in Chrome.
 The address bar should read **http://localhost:8000/...** — not `file:///...`.
 If it says `file:///`, the game shows a red box telling you the same thing.
 
-*Mac, first time only:* if macOS says the launcher is from an unidentified developer,
-right-click it → **Open** → **Open**. You only do this once.
+### Mac: "Apple could not verify STARTHERE.command is free of malware"
+
+This is normal for any file downloaded from a browser or a chat. It is not a real
+malware finding — macOS just quarantines anything that didn't come from the App Store.
+
+1. Click **Done**. Never **Move to Trash**.
+2. Go to  **System Settings → Privacy & Security**, scroll down to **Security**.
+3. You'll see a line about `STARTHERE.command` being blocked, with an
+   **Open Anyway** button. Click it and confirm with your password or Touch ID.
+4. Double-click the launcher again. It runs from now on.
+
+If the launcher still refuses, get the files from GitHub instead (**Code → Download
+ZIP**) — files from a ZIP are not quarantined the same way.
 
 *If you see "Python is not installed":* install Python 3 once from python.org
 (on Windows, tick **Add Python to PATH** during the install). After that the
@@ -40,6 +51,38 @@ work straight away with nothing installed. Good enough for a quick test on the w
 
 Use Chrome plus the launcher for the event itself: it is the combination that has been
 tested, and Firefox will ask for camera permission again every single time you open it.
+
+---
+
+## 1b. The Shopify version (no install, needs internet)
+
+There is also a copy hosted on your own store, which avoids Python, launchers and
+the Mac warning entirely:
+
+**https://www.littlequrankids.sg/pages/wall-game**
+
+Because it is an `https://` address, the camera is allowed with no setup. Open it in
+Chrome on the projector laptop and it works like any other page.
+
+**Installing it (one time, about two minutes):**
+
+1. Shopify admin → **Online Store → Pages → Wall Game**
+2. In the content box, click the **`<>`** button (Show HTML)
+3. Delete everything in the box
+4. Open **`shopify-wall-game-page.html`** in TextEdit / Notepad, select all, copy,
+   paste it into the box
+5. **Save**, then reload the page
+
+That file is a version of the game prepared specially for Shopify — it is scoped so
+it cannot disturb the rest of your store's styling. Do not paste
+`lqk-wall-game.html` there; it is the standalone version and is not built for it.
+
+**Do not rely on this for the event.** The hall wifi is the exact thing this project
+was built to avoid depending on. Use it for convenience and for testing; use the USB
+copy on the day.
+
+The page is live but is not in any menu, so only someone with the link will find it.
+Delete it after the event if you'd rather it not exist.
 
 ---
 

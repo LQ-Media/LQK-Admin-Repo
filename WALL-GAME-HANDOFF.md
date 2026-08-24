@@ -51,6 +51,41 @@ projected shapes**. There is no touchscreen and no controller — a webcam watch
 | `START-HERE.command` | Mac launcher — serves the folder on localhost and opens Chrome. |
 | `START-HERE.bat` | Windows launcher, same job. |
 | `WALL-GAME-HOW-TO-RUN.md` | Plain-language instructions written for the owner, not for a dev. |
+| `shopify-wall-game-page.html` | **Generated.** The game as a Shopify page body. Do not edit. |
+| `tools/make-shopify-page.py` | Regenerates the above from the game file. Run it after any game change. |
+
+### The Shopify copy
+
+`https://www.littlequrankids.sg/pages/wall-game` hosts the game on the store, which
+gives it an `https` origin and so sidesteps the whole `file://` problem — useful for
+testing on a laptop with no Python and no patience for macOS Gatekeeper. It needs
+internet, so it is a convenience, **not** the event plan; the USB copy stays primary.
+
+`tools/make-shopify-page.py` derives the page body from `lqk-wall-game.html`, which
+stays the single source of truth. It does three things that matter:
+
+1. Strips the document scaffolding (a page body is a fragment).
+2. Wraps everything in `<div id="lqk">` and prefixes every CSS selector with `#lqk`.
+   The game's reset (`*{margin:0}`) and its generic class names (`.btn`, `.row`,
+   `.panel`, `.note`, `.step`) would otherwise restyle the surrounding theme. The
+   `html, body` rule is split so only the scroll lock stays page-level — leaving the
+   font there was observed leaking into the theme's `<h1>`.
+3. Scopes the two `document.querySelectorAll` calls to the wrapper, so `.anchor` and
+   `.mode` can never match a theme element of the same name.
+
+It also lifts `#setup` / `#game` to `z-index:2147483000`, because a theme's sticky
+header commonly sits at `z-index:9999` and would otherwise paint over the game.
+
+Verified by building a deliberately hostile fake theme (colliding class names, its
+own reset, a sticky `z-index:9999` header) and running the full play flow inside it:
+every theme computed style stayed intact, the game rendered above the header, the
+camera started, and a simulated shadow still scored.
+
+If the page body ever needs updating, the owner pastes the generated file into the
+page's HTML view. It cannot be pushed through the Admin API from a Claude session
+without hand-transcribing ~39KB of JavaScript, which is not worth the corruption
+risk — but the stored body can be read back with `graphql_query` and compared
+against the local file to confirm a paste landed correctly.
 
 ### Run it — IMPORTANT, this was previously documented wrong
 

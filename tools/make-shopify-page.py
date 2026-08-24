@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""
+Generate the Shopify page-body version of the wall game from lqk-wall-game.html.
+
+Why this exists
+---------------
+The game is a complete HTML document. A Shopify page body is a *fragment* pasted
+inside the theme's own page, so three things have to change:
+
+1. The document scaffolding (doctype, <html>, <head>, <body>) has to go.
+2. Everything gets wrapped in <div id="lqk">, and every CSS selector is prefixed
+   with #lqk. Without this, the game's reset (`* { margin:0 }`) and its generic
+   class names (.btn, .row, .panel, .note) would restyle the surrounding theme.
+3. The two `document.querySelectorAll` calls are scoped to that wrapper, so
+   `.anchor` / `.mode` can never match a theme element of the same name.
+
+The game file stays the single source of truth. Run this after changing it:
+
+    python3 tools/make-shopify-page.py
+
+Then paste the contents of shopify-wall-game-page.html into the Shopify page's
+HTML view (Online Store > Pages > Wall Game > "<>" button), or let Claude push it
+with the Admin API.
+"""
+
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+SRC = ROOT / "lqk-wall-game.html"
+OUT = ROOT / "shopify-wall-game-page.html"
+WRAPPER = "#lqk"
+
+# Selectors that must stay unscoped: page-level rules and custom properties.
+KEEP_AS_IS = (":root", "html", "body", "@", WRAPPER)
+
+
+def prefix_selector(sel: str) -> str:
+    """Prefix one comma-separated selector list with the wrapper id."""
+    parts = []
+    for part in sel.split(","):
+        p = part.strip()
+        if not p:
+            continue
+        if p.startswith(KEEP_AS_IS):
+            parts.append(p)
+        elif p == "*":
+            parts.append(f"{WRAPPER},{WRAPPER} *")
+        else:
+            parts.append(f"{WRAPPER} {p}")
+    return ",".join(parts)
+
+
+def scope_css(css: str) -> str:
+    """Prefix every rule's selector, including rules nested inside @media."""
+    # Comments are dropped first: a comment sitting between a `}` and the next
+    # selector would otherwise land between the prefix and the selector.
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    out = []
+    i = 0
+    depth = 0
+    buf = ""
+    while i < len(css):
+        c = css[i]
+        if c == "{":
+            sel = buf.strip()
+            if sel.startswith("@"):
+                out.append(sel + "{")          # at-rule: keep, recurse into body
+            else:
+                out.append(prefix_selector(sel) + "{")
+            buf = ""
+            depth += 1
+        elif c == "}":
+            out.append(buf)                    # declaration block, unchanged
+            out.append("}")
+            buf = ""
+            depth -= 1
+        else:
+            buf += c
+        i += 1
+    out.append(buf)
+    return "".join(out)
+
+
+def split_page_rule(css: str) -> str:
+    """
+    The game sets font, colour, height and background on `html, body`. On a Shopify
+    page those would be inherited by the theme's own header and footer, so only the
+    scroll lock stays page-level (a full-screen game page should not scroll) and
+    everything else moves onto the wrapper.
+    """
+    m = re.search(r"html,\s*body\{([^}]*)\}", css)
+    if not m:
+        return css
+    page, inner = [], []
+    for decl in (d.strip() for d in m.group(1).split(";")):
+        if not decl:
+            continue
+        prop = decl.split(":", 1)[0].strip()
+        (page if prop.startswith("overflow") else inner).append(decl)
+    repl = "html,body{" + ";".join(page) + "}"
+    if inner:
+        repl += "\n" + WRAPPER + "{" + ";".join(inner) + "}"
+    return css[: m.start()] + repl + css[m.end():]
+
+
+def main() -> int:
+    if not SRC.exists():
+        print(f"cannot find {SRC}", file=sys.stderr)
+        return 1
+    html = SRC.read_text(encoding="utf-8")
+
+    style = re.search(r"<style>(.*?)</style>", html, re.S)
+    script = re.search(r"<script>(.*?)</script>", html, re.S)
+    body = re.search(r"<body>(.*?)</body>", html, re.S)
+    if not (style and script and body):
+        print("could not find <style>, <script> and <body> in the source", file=sys.stderr)
+        return 1
+
+    markup = body.group(1)
+    markup = re.sub(r"<style>.*?</style>", "", markup, flags=re.S)
+    markup = re.sub(r"<script>.*?</script>", "", markup, flags=re.S)
+
+    js = script.group(1)
+    scoped_js = js.replace(
+        'const $=s=>document.querySelector(s);',
+        'const LQK=document.getElementById("lqk");\n'
+        'const $=s=>LQK.querySelector(s);',
+    ).replace("document.querySelectorAll(", "LQK.querySelectorAll(")
+
+    if "const LQK=" not in scoped_js:
+        print("the $ helper in the source changed; update this script", file=sys.stderr)
+        return 1
+    if "document.querySelectorAll(" in scoped_js:
+        print("an unscoped querySelectorAll survived", file=sys.stderr)
+        return 1
+
+    out = (
+        "<!-- LQK Wall Game — generated by tools/make-shopify-page.py. -->\n"
+        "<!-- Do not edit here. Edit lqk-wall-game.html and re-run the script. -->\n"
+        '<div id="lqk">\n'
+        + markup.strip()
+        + "\n</div>\n<style>\n"
+        + split_page_rule(scope_css(style.group(1))).strip()
+        + "\n"
+        # A theme's sticky header often carries a high z-index and would paint over
+        # the game. Lift the game above anything the theme can reasonably use, and
+        # keep the corner brackets above the setup panel as they are standalone.
+        + "\n#lqk #setup,#lqk #game{z-index:2147483000}"
+        + "\n#lqk .anchor{z-index:2147483001}\n"
+        + "</style>\n<script>\n"
+        + scoped_js.strip()
+        + "\n</script>\n"
+    )
+    OUT.write_text(out, encoding="utf-8")
+    print(f"wrote {OUT.relative_to(ROOT)} ({len(out):,} bytes)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
