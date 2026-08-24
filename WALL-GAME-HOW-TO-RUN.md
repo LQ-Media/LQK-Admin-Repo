@@ -32,6 +32,15 @@ right-click it → **Open** → **Open**. You only do this once.
 (on Windows, tick **Add Python to PATH** during the install). After that the
 launcher works forever, offline.
 
+### In a hurry, or no Python yet?
+
+Open `lqk-wall-game.html` in **Firefox** instead of Chrome — just double-click it and
+choose Firefox. Firefox is usually willing to give the camera to a file, so it may
+work straight away with nothing installed. Good enough for a quick test on the wall.
+
+Use Chrome plus the launcher for the event itself: it is the combination that has been
+tested, and Firefox will ask for camera permission again every single time you open it.
+
 ---
 
 ## 2. Set it up at the wall

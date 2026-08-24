@@ -250,7 +250,7 @@ function bootCheck(){
              : "This address cannot use the camera",
       "<p>"+(isFile
         ? "You opened this page straight from a folder, so the address starts with "
-          +"<b>file://</b>. Browsers refuse camera access there. Nothing is wrong with the file."
+          +"<b>file://</b>. Chrome refuses camera access there. Nothing is wrong with the file."
         : "Browsers only allow the camera on <b>http://localhost</b> or on <b>https://</b>. "
           +"This page is on <b>"+location.protocol+"//"+location.hostname+"</b>.")+"</p>"
       +"<p>Do this instead, on the laptop that runs the projector:</p>"
@@ -260,7 +260,11 @@ function bootCheck(){
       +"<p>2. Or type this in Terminal / Command Prompt yourself:</p>"
       +"<code>"+serveCmd+"</code>"
       +"<p>then open <b>http://localhost:8000/lqk-wall-game.html</b></p>"
-      +"<p>This still works with no internet — it all stays on the laptop.</p>");
+      +"<p>This still works with no internet — it all stays on the laptop.</p>"
+      +"<p><b>No Python, or in a hurry?</b> Try opening this same file in <b>Firefox</b> "
+      +"instead of Chrome. Firefox is usually willing to give the camera to a file, so you can "
+      +"press the button below and it may just work. Chrome is the better choice for the event "
+      +"itself, so still set the launcher up before the day.</p>");
   }
 }
 bootCheck();
