@@ -64,7 +64,10 @@ the Mac warning entirely:
 Because it is an `https://` address, the camera is allowed with no setup. Open it in
 Chrome on the projector laptop and it works like any other page.
 
-**Installing it (one time, about two minutes):**
+The game is already installed on that page. Just open it.
+
+**If that page ever looks broken** (raw code on screen, or a blank page), reinstall it
+by hand:
 
 1. Shopify admin → **Online Store → Pages → Wall Game**
 2. In the content box, click the **`<>`** button (Show HTML)
