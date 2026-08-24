@@ -35,11 +35,31 @@ projected shapes**. There is no touchscreen and no controller — a webcam watch
 - Total budget: **S$0–40**. Kinect, Wii-remote/IR-pen and IR touch frames were all rejected on cost
   and setup time.
 
-### Hard physical requirements
-- **Front projection only** — the projector must be in front of the wall so shadows land on it.
-- Camera must see the entire projected rectangle plus a margin.
-- Kids approach from the side or crouch; a floor "touch line" stops bodies triggering shapes in
-  transit.
+### Hard physical requirements — CHANGED, read this
+The first two handoffs specified **front projection**. That was wrong, and it is the reason the
+owner's first real test failed. Brightness at a point answers "did something block the light",
+not "did something touch the wall". With the projector in front, a child's body enters the beam
+before their hand arrives, so a child walking past darkens a shape by exactly as much as a hand
+pressing it. No threshold separates those two cases. The flood guard then made it worse: a body
+shadow across several shapes looks like a room-light change, so the game ignored everything.
+
+The rig is now **rear projection**:
+
+- Projector **behind** a taut white sheet, with its "rear" setting on so the picture is mirrored
+  for the audience in front.
+- Camera **behind** as well, beside the projector but off-axis so it is not staring into the lamp.
+- Children press the **front** of the sheet. Nothing is between projector and screen any more, so
+  a darkening at a point can only be caused by contact.
+- The sheet must be **taut**. A loose sheet sways and reads as pressing. This is the main new
+  failure mode; weight or clamp the bottom edge.
+- Camera must still see the entire projected rectangle plus a margin.
+- The old floor "touch line" is unnecessary — bodies no longer block anything.
+
+The mirrored camera view needs no code: calibration maps screen→camera through whatever
+quadrilateral the four dots describe, and a flipped quad works exactly the same.
+
+`S.rig` holds `"rear"` (default) or `"front"`. Front is kept only for desk testing and is
+labelled as such in the UI; its detection rule is the old, unreliable one.
 
 ---
 
@@ -153,12 +173,24 @@ changing — every animation is "motion". Instead:
 
 - Each target captures its **own brightness baseline** ~450ms after it appears (`SETTLE`), i.e. after
   the projector has drawn it and the camera has caught up.
-- After that, a target is "armed": any **absolute luma change past `S.thresh`** for **2 consecutive
-  camera frames** counts as a hit.
+- A target reads **nine patches**, not one: five spread across the inside of the shape (`readIn`)
+  because a child presses wherever they like rather than dead centre, and four just outside it
+  (`readOut`).
+- **Rear rig (the real one):** a press can only ever make the sheet *darker*, so the drop is
+  signed. It fires when the largest inside drop passes `S.thresh` **and** exceeds the outside
+  drop by `S.thresh * 0.6`. That second test is what separates a hand from everything else: a
+  hand darkens the inside only, while a sagging sheet, a change in room light or a body leaning
+  nearby darkens inside and outside together. Something covering a whole shape still scores —
+  it is genuinely touching it.
+- **Front rig (desk testing only):** any absolute change past `S.thresh`, the old rule. It still
+  cannot tell a touch from a passer-by; that is why it is not for the event.
+- Either way, **2 consecutive camera frames** are required.
 - When there's no hit, the baseline drifts slowly (`t.base += (cur - t.base) * 0.02`) to absorb
   gradual room-light changes.
 - **Flood guard:** if ≥80% of armed targets trigger in the same frame, it's a room light or a
-  projector flash, not children. All baselines are discarded and re-taken.
+  projector flash, not children. All baselines are discarded and re-taken. In the rear rig this is
+  now a second line of defence — the inside-vs-outside test already rejects whole-sheet changes
+  before the guard is reached — but keep it for the front rig and for odd cases.
 - `rebaseline(delay)` is called after every hit, every despawn, every resize, every fullscreen
   change and after a camera restart, because all of those move or change the pixels being watched.
 
@@ -178,7 +210,9 @@ this check.
    overlapped the "TOUCH THE LETTER" prompt.
    The one exception is Practice mode's diagnostic readout, which sits above the band on purpose.
 4. **Bright shapes on a dark ground.** Cream/gold targets on deep green is not just brand styling —
-   a bright target gives the largest possible drop when a hand blocks the light. Do not invert.
+   a bright target gives the largest possible drop when a hand presses the sheet. Do not invert.
+   It also matters that the area *around* a shape stays dark and even, because that ring is the
+   reference the press is measured against.
 5. **No external assets.** Everything is drawn with Canvas paths and system fonts.
 6. **The sampling `<video>` must stay rendered.** `#vid` is a 3px, near-transparent element in the
    viewport. `display:none` or parking it far off-screen lets a browser stop decoding frames, and
@@ -215,7 +249,24 @@ Do not rip these out; they were added because a live event has no debugger.
 
 ## 6. Known gaps / candidate next tasks
 
-Not yet built, roughly in priority order for the event:
+**Agreed but not yet built — do these first:**
+
+1. **Separate input from game.** Detection is still welded into the game loop; `hit(t)` is the one
+   place a press lands and is the natural seam. Pull it out into an input layer that emits
+   "pressed at (u,v)" and put adapters behind it (mouse, rear camera, keyboard/pads, depth
+   camera). Then the sensing method can change without touching game logic, and the whole show
+   can be rehearsed with a mouse while hardware is still in transit.
+2. **Fixed zones instead of free placement.** A few large fixed zones are far more forgiving for
+   every sensing method than small shapes at random positions, they let children queue at a spot,
+   and they are what contact-pad hardware would need. Recommended for stage use.
+
+**Fallback hardware if rear projection turns out to be impossible at the venue**, in order of how
+much I'd trust them on stage: contact pads behind the sheet wired to an Arduino as keypresses
+(bulletproof, fixed zones only); a second-hand depth camera (measures real distance, but needs a
+native app and driver setup, which is a risk on the day); an infrared light curtain plus a camera
+with its IR filter removed (elegant, fiddliest to tune).
+
+Other gaps, roughly in priority order for the event:
 
 1. **Team vs team mode** — split the wall left/right, two scores, for stage use with two groups.
 2. **Maulid skin** — the owner has an established "Cream & Gold Majlis" theme: green Nabawi dome,

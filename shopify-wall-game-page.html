@@ -6,8 +6,9 @@
 
 <div id="setup"><div class="panel">
   <div class="brand"><h1>Wall Game</h1><span>Little Quran Kids</span></div>
-  <p class="lede">Project onto the wall, point a camera at the same wall, and children play by
-    putting their hands on the glowing shapes. Their shadow is the button.</p>
+  <p class="lede">Project onto a white sheet from behind, point a camera at the same sheet from
+    behind, and children play by pressing the glowing shapes from the front. Their hand on the
+    sheet is the button.</p>
 
   <div id="blocker">
     <h3 id="blockTitle">The camera cannot work the way this page was opened</h3>
@@ -15,7 +16,20 @@
   </div>
 
   <div class="step">
-    <h2><span class="num">1</span> Full screen first</h2>
+    <h2><span class="num">1</span> How is it set up?</h2>
+    <div class="modes">
+      <button class="rig sel" data-rig="rear"><b>Behind a white sheet</b>
+        <i>Projector and camera both behind. Children press the front of the sheet.
+          A press is the only thing that can darken the sheet, so this actually works.</i></button>
+      <button class="rig" data-rig="front"><b>In front of a wall</b>
+        <i>Projector in front. The camera only sees shadows, so it cannot tell a touch
+          from a child walking past. Use for testing, not for the event.</i></button>
+    </div>
+    <p class="note" id="rigNote"></p>
+  </div>
+
+  <div class="step">
+    <h2><span class="num">2</span> Full screen first</h2>
     <p>Press this <b>before</b> you mark the corners. The gold brackets must be in the same place
       during setup and during the game — if the picture changes size afterwards, every shape moves
       and nothing triggers.</p>
@@ -26,10 +40,11 @@
   </div>
 
   <div class="step">
-    <h2><span class="num">2</span> Turn on the camera</h2>
-    <p>Sit the camera next to the projector, facing the wall. It must see the whole projected
-      picture, plus a little margin. If your laptop has its own webcam, pick the right camera in
-      the list — the built-in one is usually pointing at you, not at the wall.</p>
+    <h2><span class="num">3</span> Turn on the camera</h2>
+    <p id="camHint">Sit the camera beside the projector, on the same side of the sheet, facing it.
+      It must see the whole projected picture, plus a little margin. If your laptop has its own
+      webcam, pick the right camera in the list — the built-in one is usually pointing at you,
+      not at the sheet.</p>
     <div class="row" style="margin-top:12px">
       <button class="btn" id="camBtn">Turn on camera</button>
       <select id="camPick" style="display:none"></select>
@@ -43,7 +58,7 @@
   </div>
 
   <div class="step">
-    <h2><span class="num">3</span> Mark the corners</h2>
+    <h2><span class="num">4</span> Mark the corners</h2>
     <p>Drag dots <b>1 2 3 4</b> in the camera picture onto the matching gold corner brackets
       you can see on the wall. Get this right and everything else works. Click a dot and use the
       arrow keys for fine nudges.</p>
@@ -54,7 +69,7 @@
   </div>
 
   <div class="step">
-    <h2><span class="num">4</span> Set the sensitivity</h2>
+    <h2><span class="num">5</span> Set the sensitivity</h2>
     <label class="f">Higher number = harder to trigger. Start at 18. If shapes pop by themselves,
       raise it. If hands don't register, lower it.</label>
     <input type="range" id="sens" min="6" max="60" value="18">
@@ -68,7 +83,7 @@
   </div>
 
   <div class="step">
-    <h2><span class="num">5</span> Pick a game</h2>
+    <h2><span class="num">6</span> Pick a game</h2>
     <div class="modes">
       <button class="mode sel" data-mode="lantern"><b>Catch the Lanterns</b>
         <i>Lanterns light up around the wall. Touch them before they fade. No reading needed.</i></button>
@@ -116,8 +131,8 @@
     margin:6px 0;white-space:pre-wrap;word-break:break-all}#lqk #stage{position:relative;width:100%;margin-top:12px;border-radius:10px;overflow:hidden;
     background:#000;display:none}#lqk #stage video{width:100%;display:block}#lqk #quadc{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}#lqk #handles{position:absolute;inset:0}#lqk .h{position:absolute;width:34px;height:34px;margin:-17px 0 0 -17px;border-radius:50%;
     border:3px solid var(--gold);background:rgba(227,179,65,.25);color:#fff;
-    display:grid;place-items:center;font-weight:800;font-size:14px;cursor:grab;touch-action:none}#lqk .h:focus-visible{outline:3px solid var(--cream);outline-offset:2px}#lqk .h.on{cursor:grabbing;background:rgba(227,179,65,.6)}#lqk .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}#lqk .mode{text-align:left;border:1px solid rgba(251,243,226,.2);background:rgba(255,255,255,.03);
-    border-radius:11px;padding:13px;cursor:pointer;color:var(--cream)}#lqk .mode.sel{border-color:var(--gold);background:rgba(227,179,65,.12)}#lqk .mode b{display:block;font-size:15px;margin-bottom:3px}#lqk .mode i{font-style:normal;font-size:12.5px;color:#A9C0B3;line-height:1.4}#lqk label.f{display:block;font-size:12.5px;color:#A9C0B3;margin-bottom:6px}#lqk input[type=range]{width:100%;accent-color:var(--gold)}#lqk .meterwrap{position:relative;margin-top:9px}#lqk .meter{height:11px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}#lqk .meter i{display:block;height:100%;width:0;background:var(--gold);transition:width .08s linear}#lqk #tick{position:absolute;top:-4px;width:2px;height:19px;background:var(--cream);
+    display:grid;place-items:center;font-weight:800;font-size:14px;cursor:grab;touch-action:none}#lqk .h:focus-visible{outline:3px solid var(--cream);outline-offset:2px}#lqk .h.on{cursor:grabbing;background:rgba(227,179,65,.6)}#lqk .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}#lqk .mode,#lqk .rig{text-align:left;border:1px solid rgba(251,243,226,.2);background:rgba(255,255,255,.03);
+    border-radius:11px;padding:13px;cursor:pointer;color:var(--cream)}#lqk .mode.sel,#lqk .rig.sel{border-color:var(--gold);background:rgba(227,179,65,.12)}#lqk .mode b,#lqk .rig b{display:block;font-size:15px;margin-bottom:3px}#lqk .mode i,#lqk .rig i{font-style:normal;font-size:12.5px;color:#A9C0B3;line-height:1.4}#lqk label.f{display:block;font-size:12.5px;color:#A9C0B3;margin-bottom:6px}#lqk input[type=range]{width:100%;accent-color:var(--gold)}#lqk .meterwrap{position:relative;margin-top:9px}#lqk .meter{height:11px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}#lqk .meter i{display:block;height:100%;width:0;background:var(--gold);transition:width .08s linear}#lqk #tick{position:absolute;top:-4px;width:2px;height:19px;background:var(--cream);
     border-radius:1px;pointer-events:none}#lqk .note{font-size:12.5px;color:#8FA79A;margin-top:9px;line-height:1.5}#lqk .warn{color:var(--rose)}#lqk .ok{color:#8FD6A8}#lqk .anchor{position:fixed;width:64px;height:64px;border:5px solid var(--gold);z-index:5;
     color:var(--gold);font-weight:800;font-size:20px;display:grid;place-items:center;pointer-events:none}#lqk .a1{top:0;left:0;border-right:0;border-bottom:0}#lqk .a2{top:0;right:0;border-left:0;border-bottom:0}#lqk .a3{bottom:0;right:0;border-left:0;border-top:0}#lqk .a4{bottom:0;left:0;border-right:0;border-top:0}@media (prefers-reduced-motion:reduce){#lqk,#lqk *{transition:none!important}}
 
@@ -133,11 +148,12 @@ const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
 /* ============ saved settings ============ */
 const SKEY="lqk.wallgame.v1";
 const S={quad:[{x:.14,y:.16},{x:.86,y:.16},{x:.86,y:.84},{x:.14,y:.84}],
-         thresh:18, mode:"lantern", dur:90, dev:"", calibFS:false};
+         thresh:18, mode:"lantern", dur:90, dev:"", calibFS:false, rig:"rear"};
 
 function saveS(){
   try{ localStorage.setItem(SKEY,JSON.stringify(
-    {quad:S.quad,thresh:S.thresh,mode:S.mode,dur:S.dur,dev:S.dev,calibFS:S.calibFS})); }catch(e){}
+    {quad:S.quad,thresh:S.thresh,mode:S.mode,dur:S.dur,dev:S.dev,calibFS:S.calibFS,
+     rig:S.rig})); }catch(e){}
 }
 function loadS(){
   let o=null;
@@ -150,6 +166,7 @@ function loadS(){
   if(o.mode==="lantern"||o.mode==="huruf"||o.mode==="test") S.mode=o.mode;
   if([60,90,120,180].indexOf(+o.dur)>=0) S.dur=+o.dur;
   if(typeof o.dev==="string") S.dev=o.dev;
+  if(o.rig==="rear"||o.rig==="front") S.rig=o.rig;
   S.calibFS=!!o.calibFS;
   return true;
 }
@@ -431,6 +448,26 @@ function sample(u,v,rad){
 }
 function quadSpan(){const q=S.quad;return Math.hypot((q[1].x-q[0].x)*CAMW,(q[1].y-q[0].y)*CAMH)||CAMW;}
 
+/* ---------- what the camera reads at one shape ----------
+   Five patches INSIDE the shape (middle plus four spread out), because a child
+   presses wherever they like, not dead centre. Four more patches just OUTSIDE it.
+   A hand on the sheet darkens the inside only. A body leaning on the sheet, a
+   sagging sheet or a change in room light darkens inside and outside alike —
+   which is how the two are told apart. */
+function patchRad(t){ return Math.max(2,quadSpan()*(t.r/W)*0.30); }
+function readIn(t){
+  const rad=patchRad(t), du=t.r/W*0.55, dv=t.r/H*0.55;
+  return [ sample(t.u,t.v,rad),
+           sample(t.u-du,t.v-dv,rad), sample(t.u+du,t.v-dv,rad),
+           sample(t.u-du,t.v+dv,rad), sample(t.u+du,t.v+dv,rad) ];
+}
+function readOut(t){
+  const rad=patchRad(t), du=t.r/W*1.75, dv=t.r/H*1.75;
+  const cu=x=>clamp(x,0.02,0.98), cvv=y=>clamp(y,0.02,0.98);
+  return ( sample(cu(t.u-du),t.v,rad) + sample(cu(t.u+du),t.v,rad)
+         + sample(t.u,cvv(t.v-dv),rad) + sample(t.u,cvv(t.v+dv),rad) ) / 4;
+}
+
 /* ---------- setup controls ---------- */
 function paintTick(){
   /* the meter shows 0..60 of light change, so the line goes at thresh/60 */
@@ -444,8 +481,35 @@ LQK.querySelectorAll(".mode").forEach(b=>b.onclick=()=>{
   LQK.querySelectorAll(".mode").forEach(x=>x.classList.remove("sel"));
   b.classList.add("sel"); S.mode=b.dataset.mode; saveS();});
 
+const RIGNOTE={
+  rear:"Hang the sheet TIGHT — a loose sheet sways and the game will see that as pressing. "+
+       "Weight or clamp the bottom edge. Put the projector behind and turn on its “rear” "+
+       "setting so the picture reads the right way round to the children. Sit the camera "+
+       "behind too, beside the projector but off to one side, so it is not staring into the lamp.",
+  front:"Fair warning: with the projector in front, a child walking past darkens a shape exactly "+
+        "as much as a hand pressing it, and the game cannot tell them apart. Fine for checking "+
+        "your setup at the desk. Do not run the event on this."
+};
+function paintRig(){
+  LQK.querySelectorAll(".rig").forEach(x=>x.classList.toggle("sel",x.dataset.rig===S.rig));
+  $("#rigNote").textContent=RIGNOTE[S.rig];
+  $("#rigNote").className="note"+(S.rig==="front"?" warn":"");
+  $("#camHint").textContent=S.rig==="rear"
+    ? "Sit the camera behind the sheet, beside the projector, facing the sheet. It must see the "+
+      "whole projected picture, plus a little margin. If your laptop has its own webcam, pick the "+
+      "right camera in the list — the built-in one is pointing at you, not at the sheet."
+    : "Sit the camera next to the projector, facing the wall. It must see the whole projected "+
+      "picture, plus a little margin. Pick the right camera in the list — a laptop's built-in "+
+      "webcam is pointing at you, not at the wall.";
+}
+LQK.querySelectorAll(".rig").forEach(b=>b.onclick=()=>{
+  S.rig=b.dataset.rig; saveS(); paintRig();
+  if(playing) rebaseline(SETTLE);
+});
+
 function applySaved(){
   paintTick();
+  paintRig();
   $("#dur").value=String(S.dur);
   LQK.querySelectorAll(".mode").forEach(x=>x.classList.toggle("sel",x.dataset.mode===S.mode));
   $("#calibState").textContent=hadSaved
@@ -618,18 +682,35 @@ function blip(f,d){
 
 function detect(now){
   if(!grab()||now<holdUntil) return;
+  const rear=S.rig==="rear";
   const live=[],fired=[];
   let maxD=0;
   for(const t of targets){
     if(now-t.born<SETTLE) continue;
-    const rad=Math.max(2,quadSpan()*(t.r/W)*0.55);
-    const cur=sample(t.u,t.v,rad);
-    if(t.base===null){t.base=cur;t.streak=0;continue;}
+    const ins=readIn(t), out=readOut(t);
+    if(t.base===null){t.base={ins:ins,out:out};t.streak=0;continue;}
     live.push(t);
-    const d=Math.abs(t.base-cur);
-    if(d>maxD) maxD=d;
-    if(d>S.thresh){t.streak++; if(t.streak>=2) fired.push(t);}
-    else {t.streak=0; t.base+=(cur-t.base)*0.02;}
+
+    /* Behind a sheet, a press can only ever make a patch DARKER, so we look at a
+       signed drop. In front of a wall we have no such luxury and take any change. */
+    let inner=0;
+    for(let i=0;i<ins.length;i++){
+      const d=rear ? (t.base.ins[i]-ins[i]) : Math.abs(t.base.ins[i]-ins[i]);
+      if(d>inner) inner=d;
+    }
+    const outer=rear ? (t.base.out-out) : Math.abs(t.base.out-out);
+    const local=inner-outer;          /* how much of the darkening is just this shape */
+    const score_=rear?local:inner;
+    if(score_>maxD) maxD=score_;
+
+    const pass=rear ? (inner>S.thresh && local>S.thresh*0.6)
+                    : (inner>S.thresh);
+    if(pass){t.streak++; if(t.streak>=2) fired.push(t);}
+    else {
+      t.streak=0;
+      for(let i=0;i<ins.length;i++) t.base.ins[i]+=(ins[i]-t.base.ins[i])*0.02;
+      t.base.out+=(out-t.base.out)*0.02;
+    }
   }
   dbgD=maxD;
   /* room lights changed / projector flashed -> everything moved at once. Ignore, re-baseline. */
@@ -709,7 +790,8 @@ function hud(now){
     g.font="600 "+Math.round(H*.02)+"px system-ui,sans-serif";
     const alive=camOn&&(now-lastFrameAt<1000);
     g.fillStyle=alive?"rgba(143,214,168,.9)":"#C9553D";
-    g.fillText(alive?("camera ok  ·  change "+dbgD.toFixed(0)+" / need "+S.thresh)
+    g.fillText(alive?((S.rig==="rear"?"camera ok  ·  press ":"camera ok  ·  change ")
+                      +dbgD.toFixed(0)+" / need "+S.thresh)
                     :"NO CAMERA PICTURE",W*.035,H*.005);
   }
 }

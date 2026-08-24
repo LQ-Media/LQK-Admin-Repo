@@ -89,18 +89,63 @@ Delete it after the event if you'd rather it not exist.
 
 ---
 
-## 2. Set it up at the wall
+## 2. Rig it up — behind a sheet, not in front of a wall
 
-Follow the five steps on screen, in order. Two of them matter more than the rest:
+This is the important part, and it is why the earlier version misbehaved.
 
-**Step 1 — Full screen first.** Press **Go full screen** *before* you mark the
+The game works out that a shape was pressed by watching that spot get darker. With
+the projector **in front** of a wall, a child's own body blocks the beam before their
+hand ever arrives — so a child simply walking past darkens a shape exactly as much as
+a hand pressing it. The game cannot tell the difference. That is not something a
+sensitivity setting can fix.
+
+Put the projector **behind** a white sheet and the problem disappears. Nothing is
+between the projector and the screen any more, so the only thing that can darken a
+spot is a hand pressed against the front of the sheet.
+
+**What you need**
+
+| Thing | Notes |
+|---|---|
+| A white sheet | Thin white cloth, plain polyester, or a white shower curtain. Light must glow through it. A thick duvet cover will not work. |
+| Space behind it | Roughly 2–3m, depending on your projector. Less if it is short-throw. |
+| Something to hang it from | It must end up **taut**. |
+
+**Setting it up**
+
+1. Hang the sheet and pull it **tight**. Weight or clamp the bottom edge. A loose
+   sheet sways, and the game reads sway as pressing.
+2. Put the projector behind the sheet, pointing at it.
+3. In the projector's menu, turn on **rear projection** (sometimes "Rear" or
+   "Rear-Table"). This mirrors the picture so it reads correctly to the children in
+   front. Every projector has this setting.
+4. Put the camera behind as well, next to the projector but off to one side, so it is
+   not looking straight into the lamp.
+5. Children stand in **front**. They press the shapes they can see glowing through
+   the cloth.
+
+Don't worry that the camera sees the picture mirrored — you drag dots 1-2-3-4 onto
+the brackets wherever they appear, and the game works the rest out.
+
+**The setting in the game.** Step 1 of the setup screen asks how you've rigged it.
+Leave it on **Behind a white sheet**. The other option, *In front of a wall*, exists
+only for testing at your desk — it has the flaw described above and should not be
+used for the event.
+
+---
+
+## 3. Set it up at the wall
+
+Follow the six steps on screen, in order. Two of them matter more than the rest:
+
+**Step 2 — Full screen first.** Press **Go full screen** *before* you mark the
 corners. The gold brackets have to be in the same place during setup and during the
 game. If the picture changes size after you have marked the corners, every shape
 moves and nothing will trigger. The line next to the button warns you if this
 happens.
 
-**Step 3 — Mark the corners.** Drag dots **1 2 3 4** in the camera picture onto the
-gold brackets you can see on the wall. Click a dot and use the arrow keys for small
+**Step 4 — Mark the corners.** Drag dots **1 2 3 4** in the camera picture onto the
+gold brackets you can see through the sheet. Click a dot and use the arrow keys for small
 nudges (hold Shift for bigger ones). A gold outline shows the area you have marked.
 
 Your corners, sensitivity, chosen game and camera are **remembered**. If the laptop
@@ -109,10 +154,10 @@ dots, because if the projector moved, they are wrong.
 
 ---
 
-## 3. Choosing the camera
+## 4. Choosing the camera
 
 If the laptop has its own webcam, the game may pick that one — it points at *you*,
-not at the wall, so nothing ever triggers. Use the dropdown next to
+not at the sheet, so nothing ever triggers. Use the dropdown next to
 **Restart camera** to choose the right camera. Your choice is remembered.
 
 Start the phone app (Iriun / DroidCam) or plug the webcam in **before** pressing
@@ -120,15 +165,15 @@ Start the phone app (Iriun / DroidCam) or plug the webcam in **before** pressing
 
 ---
 
-## 4. Sensitivity
+## 5. Sensitivity
 
 Use **Practice** mode for this. It shows a live readout at the top-left:
 
 ```
-camera ok  ·  change 44 / need 18
+camera ok  ·  press 44 / need 18
 ```
 
-- Put a hand on a shape. **change** must jump well past **need**.
+- Press a shape. **press** must jump well past **need**.
 - Shapes popping by themselves → raise the number.
 - Hands not registering → lower the number.
 
@@ -137,7 +182,7 @@ against it directly.
 
 ---
 
-## 5. Keys during play
+## 6. Keys during play
 
 | Key | What it does |
 |---|---|
@@ -148,7 +193,7 @@ against it directly.
 
 ---
 
-## 6. If something goes wrong mid-event
+## 7. If something goes wrong mid-event
 
 | What you see | What it means |
 |---|---|
@@ -156,9 +201,9 @@ against it directly.
 | "No camera found" | Phone app not running, or webcam not plugged in. Start it, press the button again. |
 | "Another app is using it" | Close Zoom / Teams / Photo Booth, press the button again. |
 | **CAMERA NOT SEEING ANYTHING** across the top during play | The camera dropped out (sleep, unplug, phone app closed). The game keeps trying by itself. If it does not come back: Esc → **Restart camera**. |
-| Shapes pop by themselves | Raise the sensitivity number. |
-| Nothing triggers at all | Wrong camera chosen, or the corner dots are wrong, or the picture changed size after you marked them. |
+| Shapes pop by themselves | Sheet is too loose (tighten it) or sensitivity too low (raise the number). |
+| Nothing triggers at all | No camera preview = camera never started. Otherwise: wrong camera chosen, corner dots wrong, or the picture changed size after you marked them. |
 | Everything triggers when the house lights change | Normal — the game notices and ignores it. |
 
-Front projection only: the projector must be **in front of** the wall, so the
-children's shadows land on the picture.
+The projector and camera both go **behind** the sheet. See section 2 — this is the
+part that makes a press actually register.
