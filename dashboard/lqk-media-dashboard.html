@@ -1,0 +1,802 @@
+<title>LQK Media Dashboard</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{
+  --bg:#FBF6EE; --paper:#FFFFFF; --ink:#3A1A22; --ink-2:#6E4A52; --ink-3:#9A7C83;
+  --line:#E7D8CB; --line-strong:#CDB4A6; --hover:#FFF3E0; --well:#F6EDE2;
+  --orange:#F6921E; --orange-soft:#FBD9B0; --red:#BE1E2D; --gold:#FDBD1A; --plum:#551A25;
+  --good:#2F7A5F; --good-bg:#E4F2EB; --warn:#B9780F; --warn-bg:#FBEFD3; --crit:#B3261E; --crit-bg:#F9E3E1; --muted:#8A6E75; --muted-bg:#F1E7E9; --info:#2F3A72; --info-bg:#E6E9F5;
+  --shadow:0 1px 2px rgba(58,26,34,.06),0 8px 24px -12px rgba(58,26,34,.18);
+  --btn-ink:#fff;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#1E1116; --paper:#2A191F; --ink:#F6EBE2; --ink-2:#CDB4B9; --ink-3:#9B8188;
+    --line:#43303A; --line-strong:#5C4650; --hover:#3A2530; --well:#22141A; --orange-soft:#6B4020;
+    --good:#7CC9A6; --good-bg:#1F3A30; --warn:#F1B84B; --warn-bg:#3F2F14; --crit:#F08A83; --crit-bg:#4A1F1E; --muted:#B79AA3; --muted-bg:#3A2A30; --info:#A9B4EA; --info-bg:#262C4E;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.5);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#1E1116; --paper:#2A191F; --ink:#F6EBE2; --ink-2:#CDB4B9; --ink-3:#9B8188;
+  --line:#43303A; --line-strong:#5C4650; --hover:#3A2530; --well:#22141A; --orange-soft:#6B4020;
+  --good:#7CC9A6; --good-bg:#1F3A30; --warn:#F1B84B; --warn-bg:#3F2F14; --crit:#F08A83; --crit-bg:#4A1F1E; --muted:#B79AA3; --muted-bg:#3A2A30; --info:#A9B4EA; --info-bg:#262C4E;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -12px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px;line-height:1.45;padding-block:22px 72px;padding-inline:clamp(16px,3vw,40px)}
+.wrap{max-width:1240px;margin:0 auto}
+h1,h2,h3,h4{font-family:"Bricolage Grotesque","Source Sans 3",sans-serif;text-wrap:balance;margin:0}
+h1{font-size:clamp(24px,3.2vw,32px);font-weight:800;letter-spacing:-.01em;line-height:1.05}
+h2{font-size:18px;font-weight:700}
+h3{font-size:14.5px;font-weight:700}
+p{margin:0}
+a{color:var(--red)} :root[data-theme="dark"] a{color:var(--gold)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) a{color:var(--gold)}}
+.eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:.9em}
+.hint{font-size:12.5px;color:var(--ink-3)}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{background:var(--paper);border:1px solid var(--line-strong);border-radius:8px;padding:7px 10px;min-width:0;max-width:100%}
+textarea{width:100%;resize:vertical;line-height:1.4}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--orange);outline-offset:1px}
+label.f{display:grid;gap:4px;font-size:13px;color:var(--ink-2)}
+.btn{border:1px solid var(--line-strong);background:var(--paper);border-radius:9px;padding:7px 13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.btn:hover{background:var(--hover)}
+.btn.primary{background:var(--red);border-color:var(--red);color:var(--btn-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.good{background:var(--good);border-color:var(--good);color:#fff}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.sm{padding:4px 9px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.stack{display:grid;gap:10px}
+
+header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:10px 20px;margin-bottom:14px}
+header .sub{color:var(--ink-2);font-size:14px;margin-top:4px}
+.who{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)}
+.who input{width:150px;padding:5px 9px}
+
+nav.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin-bottom:16px}
+nav.tabs button{border:0;background:transparent;padding:9px 12px;font-weight:600;color:var(--ink-2);border-bottom:2.5px solid transparent;margin-bottom:-1px;cursor:pointer;font-size:14.5px}
+nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--red)}
+nav.tabs button .n{display:inline-block;min-width:18px;padding:0 5px;margin-left:5px;border-radius:999px;background:var(--muted-bg);color:var(--ink-2);font-family:"JetBrains Mono",monospace;font-size:11px;line-height:1.6;text-align:center}
+nav.tabs button .n.hot{background:var(--orange);color:#fff}
+
+.chip{display:inline-flex;align-items:center;gap:6px;padding:1px 9px 1px 7px;border-radius:999px;font-size:12px;font-weight:600;line-height:1.6;white-space:nowrap}
+.chip::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
+.chip.good{color:var(--good);background:var(--good-bg)}
+.chip.warn{color:var(--warn);background:var(--warn-bg)}
+.chip.crit{color:var(--crit);background:var(--crit-bg)}
+.chip.info{color:var(--info);background:var(--info-bg)}
+.chip.muted{color:var(--muted);background:var(--muted-bg)}
+.chip.muted::before{background:transparent;border:1.5px dashed currentColor;width:5px;height:5px}
+
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);display:grid;gap:12px;align-content:start}
+.panel-head{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.empty{border:1.5px dashed var(--line-strong);border-radius:10px;padding:16px;color:var(--ink-3);font-size:14px;text-align:center}
+.notice{border-left:3px solid var(--warn);background:var(--warn-bg);color:var(--ink);padding:8px 12px;border-radius:6px;font-size:13.5px}
+.notice.good{border-color:var(--good);background:var(--good-bg)}
+
+/* Queue */
+.queue{display:grid;grid-template-columns:240px 1fr;gap:16px}
+@media (max-width:860px){.queue{grid-template-columns:1fr}}
+.days{display:grid;gap:4px;align-content:start}
+.day{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--paper);cursor:pointer;text-align:left}
+.day:hover{background:var(--hover)}
+.day[aria-current="true"]{border-color:var(--orange);box-shadow:inset 3px 0 0 var(--orange)}
+.day b{font-family:"Bricolage Grotesque",sans-serif;font-size:14px}
+.day small{color:var(--ink-3);font-size:12px;grid-column:1/-1}
+.day .dots{display:flex;gap:3px}
+.day .dots i{width:8px;height:8px;border-radius:50%;background:var(--muted-bg);border:1px solid var(--line-strong)}
+.day .dots i.approved,.day .dots i.published,.day .dots i.scheduled{background:var(--good);border-color:var(--good)}
+.day .dots i.held,.day .dots i.skipped{background:var(--crit);border-color:var(--crit)}
+.day .dots i.rerendering{background:var(--warn);border-color:var(--warn)}
+
+.post{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;display:grid;grid-template-columns:5px 1fr}
+.post .stripe{background:var(--muted)}
+.post.draft .stripe{background:var(--orange)} .post.approved .stripe,.post.scheduled .stripe,.post.published .stripe{background:var(--good)} .post.held .stripe,.post.skipped .stripe{background:var(--crit)} .post.rerendering .stripe{background:var(--warn)}
+.post .in{padding:14px 16px;display:grid;gap:12px}
+.post-head{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}
+.post-head .t{font-family:"JetBrains Mono",monospace;font-size:12px;color:var(--ink-3)}
+.post-head h3{font-size:17px;line-height:1.2;margin-top:2px}
+.post-head .src{font-size:13px;color:var(--ink-2)}
+.film{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scroll-snap-type:x mandatory}
+.film figure{margin:0;flex:0 0 auto;width:150px;scroll-snap-align:start;cursor:zoom-in}
+.film img{width:150px;aspect-ratio:4/5;object-fit:cover;border-radius:8px;border:1px solid var(--line);display:block;background:var(--well)}
+.film figure.tall img{aspect-ratio:9/16}
+.film figure.sq img{aspect-ratio:1/1}
+.film figcaption{font-family:"JetBrains Mono",monospace;font-size:10.5px;color:var(--ink-3);margin-top:3px;text-align:center}
+.film .ph{width:150px;aspect-ratio:4/5;border-radius:8px;border:1.5px dashed var(--line-strong);display:grid;place-items:center;color:var(--ink-3);font-size:12px;text-align:center;padding:8px}
+.cap{white-space:pre-wrap;font-size:14.5px;line-height:1.5;background:var(--well);border-radius:10px;padding:10px 12px;max-height:190px;overflow:auto}
+.tags{font-size:13px;color:var(--ink-2);word-break:break-word}
+.actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:12px}
+.approve{display:grid;grid-template-columns:auto auto 1fr;gap:8px;align-items:end}
+@media (max-width:600px){.approve{grid-template-columns:1fr 1fr}}
+.targets{display:flex;gap:10px;flex-wrap:wrap;font-size:13px}
+.targets label{display:flex;gap:4px;align-items:center}
+details.edit{border:1px solid var(--line);border-radius:10px;padding:8px 12px}
+details.edit summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--ink-2)}
+details.edit .body{display:grid;gap:8px;margin-top:10px}
+.copygrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media (max-width:600px){.copygrid{grid-template-columns:1fr}}
+.copygrid label.f.full{grid-column:1/-1}
+.gate{display:flex;gap:6px;flex-wrap:wrap}
+.edits{font-size:12.5px;color:var(--ink-3)}
+.edits li{margin:2px 0}
+
+/* candidates */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.tbl{overflow-x:auto}
+td .why{color:var(--ink-3);font-size:12.5px}
+
+/* calendar */
+.grid7{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
+@media (max-width:1000px){.grid7{grid-template-columns:repeat(4,1fr)}}
+@media (max-width:640px){.grid7{grid-template-columns:repeat(2,1fr)}}
+.wd{border:1px solid var(--line);border-radius:10px;padding:10px;display:grid;gap:6px;background:var(--paper)}
+.wd h4{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+.wd .pill{font-weight:700;font-size:14px;font-family:"Bricolage Grotesque",sans-serif}
+.wd .s{display:grid;grid-template-columns:44px 1fr;gap:6px;font-size:12.5px;align-items:baseline}
+.wd .s b{font-family:"JetBrains Mono",monospace;font-weight:500;font-size:11.5px;color:var(--ink-2)}
+.wd .s small{display:block;color:var(--ink-3)}
+.slotrow{display:grid;grid-template-columns:70px 1fr 1fr 1fr auto;gap:6px;align-items:center}
+@media (max-width:700px){.slotrow{grid-template-columns:1fr 1fr}}
+.next14{display:grid;gap:4px}
+.next14 .d{display:grid;grid-template-columns:120px 1fr;gap:8px;padding:6px 8px;border-radius:8px;background:var(--well);font-size:13px}
+.next14 .d b{font-family:"JetBrains Mono",monospace;font-weight:500;font-size:12px;color:var(--ink-2)}
+.next14 .d .c{color:var(--info);font-weight:600}
+
+/* templates */
+.tpls{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.tpl{border:1px solid var(--line);border-radius:12px;padding:12px;display:grid;gap:6px;background:var(--paper)}
+.tpl img{width:100%;border-radius:8px;border:1px solid var(--line);background:var(--well)}
+.tpl .ph{aspect-ratio:4/5;border-radius:8px;border:1.5px dashed var(--line-strong);display:grid;place-items:center;color:var(--ink-3);font-size:12px}
+.tpl h3{font-size:15px}
+.tpl .meta{font-size:12.5px;color:var(--ink-3)}
+
+/* inspiration */
+.inspo{background:var(--paper);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;display:grid;grid-template-columns:5px 1fr}
+.inspo .stripe{background:var(--muted)}
+.inspo.queued .stripe{background:var(--orange)}
+.inspo.analysing .stripe,.inspo.building .stripe{background:var(--warn)}
+.inspo.ready .stripe{background:var(--good)}
+.inspo.error .stripe{background:var(--crit)}
+.inspo .in{padding:14px 16px;display:grid;gap:11px}
+.inspo-head{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:start}
+.inspo-head h3{font-size:16.5px;line-height:1.2}
+.inspo-head .t{font-family:"JetBrains Mono",monospace;font-size:11.5px;color:var(--ink-3)}
+.shots{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.shots img{height:132px;width:auto;border-radius:8px;border:1px solid var(--line);background:var(--well);cursor:zoom-in;display:block}
+.shots .ph{height:132px;width:100px;flex:0 0 auto;border-radius:8px;border:1.5px dashed var(--line-strong);display:grid;place-items:center;color:var(--ink-3);font-size:11px;text-align:center;padding:6px}
+.read{display:grid;gap:9px;font-size:13.5px;background:var(--well);border-radius:10px;padding:11px 13px}
+.read h4{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin:0 0 3px}
+.read ol,.read ul{margin:0;padding-left:17px;display:grid;gap:3px}
+.read .pg{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:baseline}
+.read .pg b{font-family:"JetBrains Mono",monospace;font-size:11px;color:var(--ink-2);font-weight:500}
+.swatches{display:flex;flex-wrap:wrap;gap:6px}
+.sw{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:2px 10px 2px 3px;font-size:12px;background:var(--paper)}
+.sw i{width:15px;height:15px;border-radius:50%;border:1px solid var(--line-strong);flex:0 0 auto;display:block}
+.staged{display:flex;gap:8px;flex-wrap:wrap}
+.staged figure{margin:0;position:relative}
+.staged img{height:96px;border-radius:8px;border:1px solid var(--line);display:block}
+.staged button{position:absolute;top:-7px;right:-7px;border:1px solid var(--line-strong);background:var(--paper);border-radius:999px;width:22px;height:22px;cursor:pointer;line-height:1;font-size:13px;padding:0}
+
+/* photos */
+.photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.photo{display:grid;gap:4px}
+.photo img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;border:1px solid var(--line)}
+.photo input{font-size:12px;padding:4px 6px}
+.drop{border:2px dashed var(--line-strong);border-radius:12px;padding:20px;text-align:center;color:var(--ink-3);cursor:pointer}
+.drop:hover{background:var(--hover)}
+
+/* settings */
+.switch{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:12px}
+.switch.on{border-color:var(--good)}
+.switch b{font-family:"Bricolage Grotesque",sans-serif;font-size:16px}
+.tog{width:46px;height:26px;border-radius:999px;background:var(--muted-bg);border:1px solid var(--line-strong);position:relative;cursor:pointer;flex:0 0 auto}
+.tog::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:var(--paper);box-shadow:0 1px 2px rgba(0,0,0,.3);transition:left .15s}
+.tog.on{background:var(--good);border-color:var(--good)}
+.tog.on::after{left:22px}
+.kv{display:grid;grid-template-columns:180px 1fr;gap:6px 12px;font-size:14px}
+@media (max-width:520px){.kv{grid-template-columns:1fr}}
+.kv .k{color:var(--ink-3)}
+
+/* activity */
+.log{display:grid;gap:4px}
+.log .e{display:grid;grid-template-columns:130px 1fr;gap:8px;font-size:13.5px;padding:5px 8px;border-radius:6px}
+.log .e:nth-child(odd){background:var(--well)}
+.log .e b{font-family:"JetBrains Mono",monospace;font-weight:500;font-size:11.5px;color:var(--ink-3)}
+
+/* lightbox */
+.lb{position:fixed;inset:0;background:rgba(20,8,12,.85);display:grid;place-items:center;z-index:50;padding:16px}
+.lb img{max-height:92vh;max-width:100%;border-radius:8px}
+.lb .x{position:absolute;top:14px;right:16px;background:var(--paper);border:0;border-radius:999px;width:36px;height:36px;font-size:18px;cursor:pointer}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:10px;font-size:14px;z-index:60;box-shadow:var(--shadow)}
+.tile{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--paper)}
+.tile b{font-family:"Bricolage Grotesque",sans-serif;font-size:24px;display:block;line-height:1.1}
+.tile small{color:var(--ink-2)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+@media (max-width:700px){.tiles{grid-template-columns:1fr 1fr}}
+footer{margin-top:24px;font-size:12.5px;color:var(--ink-3)}
+@media (prefers-reduced-motion: reduce){.tog::after{transition:none}}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div>
+    <span class="eyebrow">Little Quran Kids · content pipeline</span>
+    <h1>LQK Media Dashboard</h1>
+    <p class="sub">Every day's research, the posts drafted from it, their slides, and the buttons that release them. Templates, style clones, themes and the posting calendar live here too.</p>
+  </div>
+  <div class="stack" style="gap:6px;justify-items:end">
+    <div class="who"><span>Reviewing as</span><input id="who" type="text" placeholder="your name" autocomplete="off"></div>
+    <span class="hint" id="updated">connecting to the store…</span>
+  </div>
+</header>
+
+<div class="tiles">
+  <div class="tile"><span class="eyebrow">Pipeline</span><b id="k-pipe">—</b><small id="k-pipe-s"></small></div>
+  <div class="tile"><span class="eyebrow">Awaiting review</span><b id="k-wait">—</b><small>posts not yet decided</small></div>
+  <div class="tile"><span class="eyebrow">Scheduled</span><b id="k-sched">—</b><small>approved, waiting for their time</small></div>
+  <div class="tile"><span class="eyebrow">Open requests</span><b id="k-req">—</b><small id="k-req-s">re-renders and template jobs</small></div>
+</div>
+
+<nav class="tabs" role="tablist" id="tabs">
+  <button role="tab" data-tab="queue" aria-selected="true">Posts <span class="n" id="n-queue">0</span></button>
+  <button role="tab" data-tab="scrapes">Daily research</button>
+  <button role="tab" data-tab="calendar">Calendar &amp; themes</button>
+  <button role="tab" data-tab="templates">Templates <span class="n" id="n-tpl">0</span></button>
+  <button role="tab" data-tab="inspo">Inspiration <span class="n" id="n-inspo">0</span></button>
+  <button role="tab" data-tab="photos">Photos</button>
+  <button role="tab" data-tab="settings">Settings</button>
+  <button role="tab" data-tab="activity">Activity</button>
+</nav>
+
+<!-- POSTS -->
+<section id="tab-queue" class="tab">
+  <div id="paused-note" class="notice" hidden style="margin-bottom:12px"></div>
+  <div class="queue">
+    <aside>
+      <div class="eyebrow" style="margin-bottom:6px">Days · last 60</div>
+      <div class="days" id="days"></div>
+    </aside>
+    <div class="stack" id="posts"><div class="empty">Loading…</div></div>
+  </div>
+</section>
+
+<!-- SCRAPES -->
+<section id="tab-scrapes" class="tab" hidden>
+  <div class="panel">
+    <div class="panel-head"><h2 id="sc-h">Daily research</h2><div class="row"><select id="sc-day"></select></div></div>
+    <p class="hint" id="sc-sub">Everything the overnight run found for the day's pillar, with why each one was chosen, kept as backup, or rejected. Ask for slides on any candidate and the next hourly run renders it as an extra post.</p>
+    <div id="sc-warn"></div>
+    <div class="tbl" id="sc-body"><div class="empty">Pick a day.</div></div>
+  </div>
+</section>
+
+<!-- CALENDAR -->
+<section id="tab-calendar" class="tab" hidden>
+  <div class="stack">
+    <div class="panel">
+      <div class="panel-head"><h2>Next 14 days</h2><span class="hint">what the overnight run will use, campaigns applied</span></div>
+      <div class="next14" id="next14"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Weekday plan</h2><div class="row"><button class="btn sm" id="grid-edit">Edit plan</button></div></div>
+      <p class="hint">The default week. Each slot has a role (what kind of post), a format and the template that renders it. Even ISO weeks add the Week B rotation noted under each day.</p>
+      <div class="grid7" id="grid7"></div>
+      <div id="grid-editor" hidden class="stack"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Campaigns &amp; overrides</h2><button class="btn sm" id="camp-add">New campaign</button></div>
+      <p class="hint">A campaign is a date range with an instruction the overnight run follows instead of, or on top of, the weekday plan: Ramadan mode, school holidays, the 2027 registration push. Newer campaigns win when two overlap.</p>
+      <div class="tbl" id="camps"></div>
+      <div id="camp-editor" hidden class="stack"></div>
+    </div>
+  </div>
+</section>
+
+<!-- TEMPLATES -->
+<section id="tab-templates" class="tab" hidden>
+  <div class="stack">
+    <div class="panel">
+      <div class="panel-head"><h2>Registered templates</h2><span class="hint">a template is a Canva design whose text boxes the pipeline knows how to fill</span></div>
+      <div class="tpls" id="tpls"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Add a template</h2></div>
+      <div class="copygrid">
+        <label class="f">Name<input id="t-name" placeholder="e.g. Week 3 story · bottom sheet"></label>
+        <label class="f">Format<select id="t-format"><option value="carousel_4x5">Carousel 4:5 (feed)</option><option value="story_9x16">Story / Reel cover 9:16</option><option value="square_1x1">Single image 1:1</option><option value="video_brief">Short-video brief (cover only)</option></select></label>
+        <label class="f full">Canva design link<input id="t-url" placeholder="https://www.canva.com/design/DA…/edit"></label>
+        <label class="f">Themes it suits (comma-separated)<input id="t-themes" placeholder="movement, faith & family, shop"></label>
+        <label class="f">Notes for the pipeline<input id="t-notes" placeholder="e.g. cover title max 2 lines; page 4 has no takeaway box"></label>
+      </div>
+      <p class="hint">Text boxes in the design should hold placeholder text like {{COVER_TITLE}}, {{S2_TITLE_A}}, {{S2_BODY}} … so the mapping run can find them. If a box is missing, the run tells you which one here.</p>
+      <div class="row"><button class="btn primary" id="t-add">Register template</button></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Ask for a new design</h2></div>
+      <div class="copygrid">
+        <label class="f">Working name<input id="g-name" placeholder="e.g. Ramadan nights"></label>
+        <label class="f">Format<select id="g-format"><option value="carousel_4x5">Carousel 4:5 (feed)</option><option value="story_9x16">Story / Reel cover 9:16</option><option value="square_1x1">Single image 1:1</option></select></label>
+        <label class="f full">Brief<textarea id="g-brief" rows="3" placeholder="Night indigo card, gold kicker, mascots reading by lantern light; keep the LQK logo top-centre; 5 pages like the master carousel"></textarea></label>
+      </div>
+      <p class="hint">The next hourly run drafts it in Canva from the brand kit and lists it here as "draft · tidy in Canva". Open it, fix anything by hand, then press "Map text boxes" to make it live.</p>
+      <div class="row"><button class="btn" id="g-add">Request a draft</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- INSPIRATION -->
+<section id="tab-inspo" class="tab" hidden>
+  <div class="stack">
+    <div class="panel">
+      <div class="panel-head"><h2>Clone a post's style</h2><span class="hint">structure and formatting only, rebuilt in LQK colours and fonts</span></div>
+      <p class="hint">Paste the link to an Instagram or TikTok post whose layout you like and drop a screenshot or two. The next hourly run reads how the post is built — grid, text hierarchy, slide order, caption shape — rebuilds that structure as an LQK-branded Canva design, and registers it in <b>Templates</b> ready to use on any slot. None of the original artwork, photos, fonts or wording is copied: only the skeleton comes across, dressed in LQK colours.</p>
+      <div class="copygrid">
+        <label class="f full">Post link<input id="i-url" placeholder="https://www.instagram.com/p/…  or  https://www.tiktok.com/@…/video/…"></label>
+        <label class="f">Format<select id="i-format"><option value="">auto — guess from the link</option><option value="carousel_4x5">Carousel 4:5 (feed)</option><option value="story_9x16">Story / Reel cover 9:16</option><option value="square_1x1">Single image 1:1</option><option value="video_brief">Short-video brief (cover only)</option></select></label>
+        <label class="f">Template name (optional)<input id="i-name" placeholder="e.g. Bold number carousel"></label>
+        <label class="f full">What do you like about it? (optional, but it helps a lot)<input id="i-note" placeholder="e.g. the huge number top-left, three stacked cards, tiny caption at the bottom"></label>
+      </div>
+      <label class="drop" id="i-drop">Drop screenshots here or click to choose — the cover, plus any slide worth copying (up to 6)<input id="i-file" type="file" accept="image/*" multiple hidden></label>
+      <div class="staged" id="i-staged"></div>
+      <div class="row"><button class="btn primary" id="i-add">Clone into an LQK template</button><span class="hint">Instagram and TikTok block automated reads, so the screenshots are what the run actually looks at.</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Style clones</h2><span class="hint" id="i-count"></span></div>
+      <div class="stack" id="inspos"><div class="empty">Nothing cloned yet.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PHOTOS -->
+<section id="tab-photos" class="tab" hidden>
+  <div class="panel">
+    <div class="panel-head"><h2>Class &amp; teacher photos</h2><span class="hint">only these, never scraped images</span></div>
+    <p class="hint">Upload real LQK photos with a one-line caption and tags. The pipeline can build "teacher / class photo" posts from them when a slot asks for one, and the hourly run can turn any photo into a post on request.</p>
+    <label class="drop" id="drop">Drop photos here or click to choose<input id="file" type="file" accept="image/*" multiple hidden></label>
+    <div class="photos" id="photos"></div>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<section id="tab-settings" class="tab" hidden>
+  <div class="stack">
+    <div class="panel">
+      <div class="switch" id="sw-wrap"><div class="tog" id="sw" role="switch" aria-checked="false" tabindex="0"></div><div><b>Pipeline</b><div class="hint" id="sw-s">Off — nothing is researched, drafted or posted. Requests (re-renders, template mapping) still run hourly.</div></div></div>
+      <div class="kv">
+        <span class="k">Mode</span><span><select id="mode"><option value="review-only">Review only — approve, but never publish (download pack works)</option><option value="live">Live — approved posts publish to the chosen targets</option></select></span>
+        <span class="k">Default targets</span><span class="targets" id="targets"></span>
+        <span class="k">Instagram</span><span id="ig-state">—</span>
+        <span class="k">Facebook page</span><span id="fb-state">—</span>
+        <span class="k">TikTok</span><span id="tt-state">—</span>
+        <span class="k">Reviewers</span><span id="reviewers">everyone with this link can approve</span>
+        <span class="k">History kept</span><span>60 days on this page; older days are archived to Google Drive by the Monday run</span>
+      </div>
+      <div class="row"><button class="btn primary" id="save-settings">Save settings</button><span class="hint">Credentials are never typed here — paste tokens into the CONFIG doc in Drive; this page only shows whether they are present.</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Evergreen bank</h2><span class="hint" id="eg-count"></span></div>
+      <p class="hint">Ready-made posts the pipeline falls back to when the day's research is thin. Edit any line; changes apply from the next run.</p>
+      <div class="tbl" id="eg"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ACTIVITY -->
+<section id="tab-activity" class="tab" hidden>
+  <div class="stack">
+    <div class="panel"><div class="panel-head"><h2>Requests</h2><span class="hint">picked up by the hourly run at half past</span></div><div class="tbl" id="reqs"></div></div>
+    <div class="panel"><div class="panel-head"><h2>Recent activity</h2></div><div class="log" id="log"></div></div>
+  </div>
+</section>
+
+<footer>Written to by the LQK scheduled tasks and by whoever reviews here. Nothing publishes without an approval recorded on this page. Overview lives in the <a href="https://claude.ai/code/artifact/9d82df60-6fc4-4150-97ad-9ec06bcd77ec">LQK Command Centre</a>.</footer>
+</div>
+
+<script>
+(function(){
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  const SGT = "Asia/Singapore";
+  const nowSGT = () => { const p = new Intl.DateTimeFormat("en-CA",{timeZone:SGT,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}).formatToParts(new Date()); const o={}; p.forEach(x=>o[x.type]=x.value); return {date:`${o.year}-${o.month}-${o.day}`, time:`${o.hour==="24"?"00":o.hour}:${o.minute}`}; };
+  const fmt = iso => { if(!iso) return ""; const d=new Date(iso); if(isNaN(d)) return String(iso).replace("T"," "); return d.toLocaleString("en-SG",{timeZone:SGT,day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}); };
+  const dayLabel = ds => { const d=new Date(ds+"T00:00:00+08:00"); return d.toLocaleDateString("en-SG",{timeZone:SGT,weekday:"short",day:"numeric",month:"short"}); };
+  const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  const FORMATS = {carousel_4x5:"Carousel 4:5", story_9x16:"Story 9:16", square_1x1:"Square 1:1", video_brief:"Video brief"};
+  const ROLES = {finding:"the finding", method:"the method", human:"the human angle", shop:"shop / product", photo:"class photo", faith:"faith & family", custom:"custom"};
+  const WD = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const STATUS_CHIP = {draft:["warn","awaiting review"],approved:["good","approved"],scheduled:["good","scheduled"],published:["good","published"],held:["crit","held"],skipped:["crit","skipped"],rerendering:["warn","re-rendering"],rendering:["warn","rendering"],failed:["crit","failed"],archived:["muted","archived"]};
+  const chip = (s,l) => { const c=STATUS_CHIP[s]||["muted",s]; return `<span class="chip ${c[0]}">${esc(l||c[1])}</span>`; };
+
+  let DB=null, DL=null;
+  const S = {settings:null, grid:null, camps:null, days:{}, posts:{}, slides:{}, templates:{}, photos:{}, inspo:{}, shots:{}, reqs:{}, log:null, eg:null, sel:null, tab:"queue"};
+  const subs = {};
+
+  function toast(msg){ const t=document.createElement("div"); t.className="toast"; t.textContent=msg; document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+  function who(){ return ($("who").value||"").trim() || "reviewer"; }
+  try { $("who").value = localStorage.getItem("lqk_who") || ""; } catch(e){}
+  $("who").addEventListener("change", ()=>{ try{ localStorage.setItem("lqk_who", $("who").value); }catch(e){} });
+
+  async function logEvent(text, post_id){
+    if(!DB) return;
+    const m = nowSGT().date.slice(0,7); const ref = DB.doc("activity/"+m);
+    try { const snap = await ref.get(); const ev = (snap.exists && Array.isArray(snap.data().events)) ? snap.data().events.slice(-400) : []; ev.push({at:new Date().toISOString(), by:who(), text, post_id:post_id||null}); await ref.set({month:m, events:ev}); } catch(e){ console.warn("log", e); }
+  }
+  async function addRequest(type, payload){
+    if(!DB) return null;
+    const id = nowSGT().date+"_"+uid(); const doc = {id, type, status:"open", created_at:new Date().toISOString(), by:who(), ...payload};
+    try { await DB.doc("requests/"+id).set(doc); return id; } catch(e){ if(e?.code==="quota_exceeded") toast("The store is full — ask Claude to archive old days."); else toast("Couldn't save the request."); return null; }
+  }
+
+  /* ---------- tabs ---------- */
+  $("tabs").addEventListener("click", ev => { const b = ev.target.closest("button[data-tab]"); if(!b) return; showTab(b.dataset.tab); });
+  function showTab(t){ S.tab=t; document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.tab===t)); document.querySelectorAll(".tab").forEach(s=>s.hidden = s.id!=="tab-"+t); if(t==="calendar") renderCalendar(); if(t==="templates") renderTemplates(); if(t==="inspo") renderInspo(); if(t==="photos") renderPhotos(); if(t==="settings") renderSettings(); if(t==="activity") renderActivity(); if(t==="scrapes") renderScrapes(); }
+
+  /* ---------- tiles ---------- */
+  function renderTiles(){
+    const st = S.settings || {};
+    const on = st.enabled === true;
+    $("k-pipe").textContent = on ? (st.mode==="live" ? "Live" : "Review") : "Paused";
+    $("k-pipe-s").textContent = on ? (st.mode==="live" ? "approved posts publish" : "approvals recorded, nothing published") : "switch on in Settings";
+    const posts = Object.values(S.posts);
+    const wait = posts.filter(p=>p.status==="draft").length;
+    const sched = posts.filter(p=>p.status==="approved"||p.status==="scheduled").length;
+    $("k-wait").textContent = wait; $("k-sched").textContent = sched;
+    const open = Object.values(S.reqs).filter(r=>r.status==="open"||r.status==="working").length;
+    $("k-req").textContent = open;
+    const nq=$("n-queue"); nq.textContent = wait; nq.classList.toggle("hot", wait>0);
+    const busy = Object.values(S.inspo).filter(i=>i.status!=="ready").length;
+    const ni=$("n-inspo"); ni.textContent = busy; ni.classList.toggle("hot", Object.values(S.inspo).some(i=>i.status==="error"));
+    $("n-tpl").textContent = Object.keys(S.templates).length;
+    $("paused-note").hidden = on; $("paused-note").textContent = on ? "" : "The pipeline is paused: no new days are researched or drafted until it is switched on in Settings. You can still review, edit, re-render and download what is here.";
+  }
+
+  /* ---------- days + posts ---------- */
+  function renderDays(){
+    const dates = Object.keys(S.days).sort().reverse();
+    if(!dates.length){ $("days").innerHTML = `<div class="empty">No days yet.</div>`; return; }
+    if(!S.sel || !S.days[S.sel]) S.sel = dates[0];
+    $("days").innerHTML = dates.map(d => { const day=S.days[d]; const ps=Object.values(S.posts).filter(p=>p.date===d).sort((a,b)=>a.slot-b.slot); return `<button class="day" data-d="${d}" aria-current="${d===S.sel}"><b>${esc(dayLabel(d))}</b><span class="dots">${ps.map(p=>`<i class="${esc(p.status)}" title="slot ${p.slot}: ${esc(p.status)}"></i>`).join("")}</span><small>${esc(day.pillar||"")}${day.status==="running"?" · running":""}</small></button>`; }).join("");
+    $("days").querySelectorAll(".day").forEach(b=>b.addEventListener("click",()=>{ S.sel=b.dataset.d; renderDays(); renderPosts(); }));
+  }
+  function slideSrc(pid, n){ const s = S.slides[pid+"_"+n]; return s ? s.data_uri : null; }
+  function pruneSlideSubs(keep){ Object.keys(subs).forEach(k=>{ if(k.startsWith("sl:") && !keep.has(k)){ try{ subs[k](); }catch(e){} delete subs[k]; } }); }
+  function watchSlides(pid, count){
+    for(let n=1;n<=count;n++){ const k=pid+"_"+n; if(subs["sl:"+k]) continue; subs["sl:"+k] = DB.doc("slides/"+k).onSnapshot(snap=>{ if(snap.exists) S.slides[k]=snap.data(); else delete S.slides[k]; const img=document.querySelector(`[data-slide="${k}"]`); if(img && snap.exists){ img.src = snap.data().data_uri; img.hidden=false; const fg=img.closest("figure"); if(fg){ fg.classList.remove("pending"); fg.querySelector(".ph")?.remove(); if(!img.dataset.lb){ img.dataset.lb="1"; img.addEventListener("click",()=>lightbox(img.src)); } } } }, err=>console.warn("slide",k,err)); }
+  }
+  function renderPosts(){
+    const d = S.sel; const day = S.days[d];
+    const ps = Object.values(S.posts).filter(p=>p.date===d).sort((a,b)=>(a.slot||0)-(b.slot||0));
+    if(!day){ $("posts").innerHTML = `<div class="empty">Nothing staged yet. When the pipeline runs, each day's posts appear here.</div>`; return; }
+    const head = `<div class="panel" style="padding:12px 16px"><div class="panel-head"><div><span class="eyebrow">${esc(day.weekday||"")} ${day.week_b?"· week B":""}</span><h2>${esc(dayLabel(d))} · ${esc(day.pillar||"")}</h2></div><div class="row">${day.override?`<span class="chip info">${esc(day.override)}</span>`:""}${day.status==="running"?chip("rendering","overnight run in progress"):""}<a class="btn sm" href="#" data-goto-scrapes="${d}">Research for this day →</a></div></div>${(day.warnings||[]).length?`<details><summary class="hint" style="cursor:pointer">${day.warnings.length} note${day.warnings.length>1?"s":""} from the run</summary><ul class="edits">${day.warnings.map(w=>`<li>${esc(w)}</li>`).join("")}</ul></details>`:""}</div>`;
+    $("posts").innerHTML = head + (ps.length ? ps.map(postCard).join("") : `<div class="empty">No posts for this day.</div>`);
+    $("posts").querySelector("[data-goto-scrapes]")?.addEventListener("click", ev=>{ ev.preventDefault(); $("sc-day").value = d; showTab("scrapes"); });
+    const keep=new Set(); ps.forEach(p=>{ for(let n=1;n<=(p.slide_count||5);n++) keep.add("sl:"+p.id+"_"+n); }); pruneSlideSubs(keep);
+    ps.forEach(p=>{ watchSlides(p.id, p.slide_count||5); bindPost(p); });
+  }
+  function fmtClass(f){ return f==="story_9x16"?"tall":f==="square_1x1"?"sq":""; }
+  function postCard(p){
+    const n = p.slide_count || (p.format==="carousel_4x5"?5:1);
+    const slides = []; for(let i=1;i<=n;i++){ const src=slideSrc(p.id,i); slides.push(`<figure class="${fmtClass(p.format)} ${src?"":"pending"}">${src?`<img data-slide="${p.id}_${i}" src="${src}" alt="slide ${i}">`:`<div class="ph" ><span>slide ${i}<br>${p.status==="rerendering"||p.status==="rendering"?"rendering…":"not rendered"}</span></div><img data-slide="${p.id}_${i}" alt="" hidden>`}<figcaption>${i}/${n}${p.version>1?" · v"+p.version:""}</figcaption></figure>`); }
+    const tpl = S.templates[p.template_id];
+    const src = p.source||{};
+    const decided = p.approval && (p.status==="approved"||p.status==="scheduled"||p.status==="published");
+    const def = defaultPublishAt(p);
+    const targets = (S.settings?.targets)||{instagram:true,facebook:false,tiktok:false,download:true};
+    const sel = (p.approval?.targets)||Object.keys(targets).filter(k=>targets[k]);
+    const c = p.copy||{};
+    return `<article class="post ${esc(p.status)}" data-post="${p.id}"><div class="stripe"></div><div class="in">
+      <div class="post-head"><div><div class="t">slot ${p.slot} · ${esc(p.time||"")} · ${esc(ROLES[p.role]||p.role||"")} · ${esc(FORMATS[p.format]||p.format||"")}${tpl?` · ${esc(tpl.name)}`:""}</div><h3>${esc(p.hook||c.cover_title||"(untitled)")}</h3><div class="src">${p.evergreen_id?`Evergreen ${esc(p.evergreen_id)}`:src.url?`<a href="${esc(src.url)}" target="_blank" rel="noopener">${esc(src.outlet||src.headline||"source")}</a>${src.published?` · ${esc(src.published)}`:""}${src.tier?` · ${esc(src.tier)}`:""}`:esc(src.outlet||"")}</div></div><div class="stack" style="justify-items:end;gap:4px">${chip(p.status)}${decided?`<span class="hint">by ${esc(p.approval.by||"")} · goes ${esc(String(p.approval.publish_at||"").replace("T"," "))}</span>`:""}${p.publish?.permalink?`<a class="hint" href="${esc(p.publish.permalink)}" target="_blank" rel="noopener">view post</a>`:""}</div></div>
+      <div class="film">${slides.join("")}</div>
+      ${p.gate?`<div class="gate">${Object.entries(p.gate).map(([k,v])=>`<span class="chip ${String(v).startsWith("pass")?"good":"crit"}" title="${esc(v)}">${esc(k.replace(/_/g," "))}</span>`).join("")}</div>`:""}
+      <div class="cap">${esc(p.caption||"")}</div>
+      <div class="tags">${esc(p.hashtags||"")}</div>
+      ${p.role==="video_brief"||p.format==="video_brief"?`<details class="edit" open><summary>Shot list &amp; script</summary><div class="body"><div class="cap">${esc(c.script||"")}</div></div></details>`:""}
+      <details class="edit"><summary>Edit caption, slide text or template</summary><div class="body">
+        <label class="f">Caption<textarea data-f="caption" rows="6">${esc(p.caption||"")}</textarea></label>
+        <label class="f">Hashtags<input data-f="hashtags" value="${esc(p.hashtags||"")}"></label>
+        <div class="row"><button class="btn sm" data-act="save-caption">Save caption</button><span class="hint">saved immediately, no re-render needed</span></div>
+        <div class="copygrid" style="margin-top:6px">${copyFields(c, p.format)}</div>
+        <div class="row"><button class="btn sm" data-act="rerender">Save slide text &amp; re-render</button><label class="f" style="display:inline-grid">Template<select data-f="template_id">${Object.values(S.templates).filter(t=>t.status==="ready"&&t.format===p.format).map(t=>`<option value="${esc(t.id)}" ${t.id===p.template_id?"selected":""}>${esc(t.name)}</option>`).join("")}</select></label><span class="hint">the hourly run rebuilds the slides and replaces the images above</span></div>
+        <label class="f">Note to Claude (optional)<input data-f="note" placeholder="e.g. make the cover warmer, drop the statistic on slide 2"></label>
+      </div></details>
+      ${(p.edits||[]).length?`<ul class="edits">${p.edits.slice(-4).map(e=>`<li>${esc(fmt(e.at))} · ${esc(e.by||"")}: ${esc(e.text)}</li>`).join("")}</ul>`:""}
+      <div class="actions">
+        ${p.status==="published"?`<span class="hint">Published ${esc(fmt(p.publish?.at))}.</span>`:`
+        <div class="approve"><label class="f">Date<input type="date" data-f="pub-date" value="${esc(def.date)}"></label><label class="f">Time (SGT)<input type="time" data-f="pub-time" step="900" value="${esc(def.time)}"></label><div class="targets">${Object.keys(targets).map(k=>`<label><input type="checkbox" data-t="${k}" ${sel.includes(k)?"checked":""}>${k==="download"?"download pack":k}</label>`).join("")}</div></div>
+        <button class="btn good" data-act="approve">${decided?"Update approval":"Approve"}</button>
+        <button class="btn" data-act="hold">${p.status==="held"?"Held":"Hold"}</button>`}
+        <button class="btn" data-act="download">Download pack</button>
+        <span class="hint" style="margin-left:auto">${S.settings?.mode==="live"?"Live: publishes at the next half-past after your time.":"Review-only: approvals are recorded, nothing is sent."}</span>
+      </div>
+    </div></article>`;
+  }
+  function copyFields(c, format){
+    const F = format==="carousel_4x5" ? [["cover_title","Cover title (≤20 chars/line, 2–3 lines)",1],["s2_title_a","Slide 2 title A"],["s2_title_b","Slide 2 title B"],["s2_body","Slide 2 body (≤170)",1],["s2_takeaway","Slide 2 takeaway (2 lines ≤26)"],["s3_title_a","Slide 3 title A"],["s3_title_b","Slide 3 title B"],["s3_body","Slide 3 bullets (4 × '• ', blank line between)",1],["s4_title_a","Slide 4 title A"],["s4_title_b","Slide 4 title B"],["s4_body","Slide 4 body (≤170)",1],["s4_takeaway","Slide 4 takeaway"],["s5_title_a","Slide 5 title A"],["s5_title_b","Slide 5 title B"],["s5_sub","Slide 5 sub (≤24)"],["s5_body","Slide 5 body (≤230)",1]]
+      : Object.keys(c).filter(k=>k!=="script").map(k=>[k,k.replace(/_/g," "),String(c[k]||"").length>40]);
+    return F.map(([k,l,ta])=>`<label class="f ${ta?"full":""}">${esc(l)}${ta?`<textarea data-c="${k}" rows="3">${esc(c[k]||"")}</textarea>`:`<input data-c="${k}" value="${esc(c[k]||"")}">`}</label>`).join("");
+  }
+  function defaultPublishAt(p){
+    if(p.approval?.publish_at){ const [d,t]=String(p.approval.publish_at).split("T"); return {date:d, time:(t||"10:30").slice(0,5)}; }
+    const n = nowSGT(); let date = p.date, time = p.time||"10:30";
+    if(date < n.date || (date===n.date && time <= n.time)){ // slot already passed: propose tomorrow, or later today if there's still a gap
+      if(date===n.date){ const [h,m]=n.time.split(":").map(Number); const mins=h*60+m+45; const hh=Math.min(23,Math.floor(mins/60)); if(hh<23){ time = String(hh).padStart(2,"0")+":30"; } else { const d=new Date(n.date+"T00:00:00+08:00"); d.setDate(d.getDate()+1); date=d.toISOString().slice(0,10); } }
+      else { const d=new Date(n.date+"T00:00:00+08:00"); d.setDate(d.getDate()+1); date=d.toISOString().slice(0,10); }
+    }
+    return {date, time};
+  }
+  function bindPost(p){
+    const el = document.querySelector(`[data-post="${p.id}"]`); if(!el) return;
+    el.querySelectorAll(".film img").forEach(img=>img.addEventListener("click",()=>lightbox(img.src)));
+    const q = f => el.querySelector(`[data-f="${f}"]`);
+    el.querySelector('[data-act="approve"]')?.addEventListener("click", async ()=>{
+      const date=q("pub-date").value, time=q("pub-time").value; if(!date||!time){ toast("Pick a date and time first."); return; }
+      const targets=[...el.querySelectorAll("[data-t]")].filter(c=>c.checked).map(c=>c.dataset.t);
+      const approval={by:who(), at:new Date().toISOString(), publish_at:`${date}T${time}`, tz:SGT, targets};
+      try{ await DB.doc("posts/"+p.id).update({status:"approved", approval}); toast(`Approved · goes ${date} ${time}`); logEvent(`approved slot ${p.slot} for ${date} ${time} (${targets.join(", ")||"no targets"})`, p.id); }catch(e){ toast("Couldn't save the approval."); }
+    });
+    el.querySelector('[data-act="hold"]')?.addEventListener("click", async ()=>{ try{ await DB.doc("posts/"+p.id).update({status:"held", approval:null, held:{by:who(),at:new Date().toISOString()}}); toast("Held — it will not post."); logEvent(`held slot ${p.slot}`, p.id);}catch(e){ toast("Couldn't save."); } });
+    el.querySelector('[data-act="save-caption"]')?.addEventListener("click", async ()=>{ const caption=q("caption").value, hashtags=q("hashtags").value; const edits=(p.edits||[]).concat([{at:new Date().toISOString(),by:who(),text:"caption edited"}]).slice(-10); try{ await DB.doc("posts/"+p.id).update({caption, hashtags, edits}); toast("Caption saved."); logEvent(`edited caption of slot ${p.slot}`, p.id);}catch(e){ toast("Couldn't save."); } });
+    el.querySelector('[data-act="rerender"]')?.addEventListener("click", async ()=>{
+      const copy={...(p.copy||{})}; el.querySelectorAll("[data-c]").forEach(i=>copy[i.dataset.c]=i.value);
+      const template_id=q("template_id")?.value||p.template_id; const note=q("note")?.value||"";
+      const edits=(p.edits||[]).concat([{at:new Date().toISOString(),by:who(),text:"slide text/template changed, re-render requested"+(note?": "+note:"")}]).slice(-10);
+      try{ await DB.doc("posts/"+p.id).update({copy, template_id, status:"rerendering", edits}); await addRequest("rerender",{post_id:p.id, template_id, note}); toast("Re-render queued for the next hourly run."); logEvent(`requested re-render of slot ${p.slot}`, p.id);}catch(e){ toast("Couldn't queue the re-render."); }
+    });
+    el.querySelector('[data-act="download"]')?.addEventListener("click", ()=>downloadPack(p));
+  }
+  async function downloadPack(p){
+    if(!DL){ toast("Downloads aren't available in this view."); return; }
+    if(!window.JSZip){ toast("Zip library didn't load."); return; }
+    const zip=new JSZip(); const n=p.slide_count||5; let got=0;
+    for(let i=1;i<=n;i++){ const s=S.slides[p.id+"_"+i]; if(!s) continue; const b64=s.data_uri.split(",")[1]; zip.file(`${p.id}_slide${i}.jpg`, b64, {base64:true}); got++; }
+    zip.file(`${p.id}_caption.txt`, (p.caption||"")+"\n\n"+(p.hashtags||"")+"\n");
+    if(p.copy?.script) zip.file(`${p.id}_script.txt`, p.copy.script);
+    const data = await zip.generateAsync({type:"uint8array"});
+    try{ await DL.save({filename:`LQK_${p.id}.zip`, data}); toast(`Pack saved: ${got} slide${got===1?"":"s"} + caption.`); logEvent(`downloaded pack for slot ${p.slot}`, p.id);}catch(e){ if(e?.code!=="cancelled"&&e?.code!=="declined") toast("Download didn't go through."); }
+  }
+  function lightbox(src){ const d=document.createElement("div"); d.className="lb"; d.innerHTML=`<img src="${src}" alt=""><button class="x" aria-label="close">×</button>`; d.addEventListener("click",()=>d.remove()); document.body.appendChild(d); }
+
+  /* ---------- scrapes ---------- */
+  function renderScrapes(){
+    const dates=Object.keys(S.days).sort().reverse(); const sel=$("sc-day");
+    const cur = sel.value && S.days[sel.value] ? sel.value : (S.sel||dates[0]);
+    sel.innerHTML = dates.map(d=>`<option value="${d}" ${d===cur?"selected":""}>${esc(dayLabel(d))} · ${esc(S.days[d].pillar||"")}</option>`).join("");
+    sel.onchange = renderScrapes;
+    const day = S.days[cur]; if(!day){ $("sc-body").innerHTML=`<div class="empty">No research recorded yet.</div>`; return; }
+    $("sc-h").textContent = `Daily research · ${dayLabel(cur)}`;
+    $("sc-warn").innerHTML = (day.warnings||[]).length ? `<div class="notice">${day.warnings.map(esc).join("<br>")}</div>` : "";
+    const cs = Array.isArray(day.candidates)?day.candidates:[];
+    const order = {chosen:0, backup:1, rejected:2}; cs.sort((a,b)=>(order[a.verdict]??3)-(order[b.verdict]??3) || (b.score||0)-(a.score||0));
+    $("sc-body").innerHTML = cs.length ? `<table><thead><tr><th>Verdict</th><th>Headline</th><th>Source</th><th>Date</th><th>Tier</th><th>Score</th><th></th></tr></thead><tbody>${cs.map((c,i)=>`<tr><td>${chip(c.verdict==="chosen"?"approved":c.verdict==="backup"?"draft":"held", c.verdict==="chosen"?`chosen · slot ${c.slot||"?"}`:c.verdict||"—")}</td><td><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.headline||c.url)}</a><div class="why">${esc(c.why||"")}</div></td><td>${esc(c.outlet||"")}</td><td class="mono">${esc(c.published||"")}</td><td>${esc(c.tier||"")}</td><td class="mono">${c.score!=null?esc(c.score):""}</td><td>${c.verdict!=="chosen"?`<button class="btn sm" data-render="${i}">Make a post</button>`:""}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">The run did not record candidates for this day (older days only kept the chosen sources).</div>`;
+    $("sc-body").querySelectorAll("[data-render]").forEach(b=>b.addEventListener("click", async ()=>{ const c=cs[+b.dataset.render]; const fmtSel = prompt("Format: carousel_4x5, story_9x16, square_1x1 or video_brief", "carousel_4x5"); if(!fmtSel) return; const id=await addRequest("render_candidate",{date:cur, candidate:c, format:fmtSel}); if(id){ toast("Queued — the next hourly run drafts and renders it as an extra post."); logEvent(`asked for a post from candidate "${c.headline}"`); } }));
+  }
+
+  /* ---------- calendar ---------- */
+  function isoWeek(ds){ const d=new Date(ds+"T00:00:00Z"); const day=(d.getUTCDay()+6)%7; d.setUTCDate(d.getUTCDate()-day+3); const fy=new Date(Date.UTC(d.getUTCFullYear(),0,4)); return 1+Math.round(((d-fy)/864e5-3+((fy.getUTCDay()+6)%7))/7); }
+  function activeCamps(ds){ const items=(S.camps?.items||[]).filter(c=>c.active!==false && c.start<=ds && ds<=c.end); return items.sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||"")); }
+  function renderCalendar(){
+    const g = S.grid||{weekdays:{}};
+    $("grid7").innerHTML = WD.map(w=>{ const d=g.weekdays?.[w]||{}; return `<div class="wd"><h4>${w.slice(0,3)}</h4><div class="pill">${esc(d.pillar||"—")}</div>${(d.slots||[]).map(s=>`<div class="s"><b>${esc(s.time)}</b><span>${esc(ROLES[s.role]||s.role)}<small>${esc(FORMATS[s.format]||s.format)}${S.templates[s.template_id]?" · "+esc(S.templates[s.template_id].name):""}${s.theme?" · "+esc(s.theme):""}</small></span></div>`).join("")}${d.week_b?`<div class="hint">Week B: ${esc(d.week_b)}</div>`:""}</div>`; }).join("");
+    const out=[]; const start=new Date(nowSGT().date+"T00:00:00Z");
+    for(let i=0;i<14;i++){ const d=new Date(start); d.setUTCDate(d.getUTCDate()+i); const ds=d.toISOString().slice(0,10); const w=WD[(d.getUTCDay()+6)%7]; const wk=isoWeek(ds)%2===0; const day=g.weekdays?.[w]||{}; const cs=activeCamps(ds); out.push(`<div class="d"><b>${esc(dayLabel(ds))}</b><span>${esc(day.pillar||"—")}${wk&&day.week_b?` <span class="hint">· week B</span>`:""}${cs.length?` <span class="c">· ${cs.map(c=>esc(c.name)).join(", ")}</span>`:""}</span></div>`); }
+    $("next14").innerHTML = out.join("");
+    const items=(S.camps?.items||[]).slice().sort((a,b)=>a.start.localeCompare(b.start));
+    const today=nowSGT().date;
+    $("camps").innerHTML = items.length ? `<table><thead><tr><th>Campaign</th><th>Dates</th><th>Type</th><th>Instruction</th><th>Template</th><th></th></tr></thead><tbody>${items.map(c=>`<tr style="${c.end<today?"opacity:.55":""}"><td><b>${esc(c.name)}</b>${c.active===false?" "+chip("held","off"):""}</td><td class="mono">${esc(c.start)} → ${esc(c.end)}</td><td>${esc(c.type||"")}</td><td>${esc(c.instruction||"")}${c.cadence?`<div class="why">${esc(c.cadence)}</div>`:""}</td><td>${esc(S.templates[c.template_id]?.name||"default")}</td><td><button class="btn sm" data-edit="${esc(c.id)}">Edit</button></td></tr>`).join("")}</tbody></table>` : `<div class="empty">No campaigns.</div>`;
+    $("camps").querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>campEditor(items.find(c=>c.id===b.dataset.edit))));
+  }
+  $("camp-add").addEventListener("click",()=>campEditor(null));
+  function campEditor(c){
+    c = c || {id:"c_"+uid(), name:"", start:nowSGT().date, end:nowSGT().date, type:"lqk_event", instruction:"", cadence:"", template_id:"", active:true, created_at:new Date().toISOString()};
+    const ed=$("camp-editor"); ed.hidden=false;
+    ed.innerHTML = `<div class="copygrid"><label class="f">Name<input id="c-name" value="${esc(c.name)}"></label><label class="f">Type<select id="c-type">${["lqk_event","islamic","school_holiday","public_holiday","school","product","other"].map(t=>`<option ${t===c.type?"selected":""}>${t}</option>`).join("")}</select></label><label class="f">Start<input id="c-start" type="date" value="${esc(c.start)}"></label><label class="f">End<input id="c-end" type="date" value="${esc(c.end)}"></label><label class="f full">Instruction for the overnight run<textarea id="c-instr" rows="3">${esc(c.instruction)}</textarea></label><label class="f">Cadence / which slots<input id="c-cad" value="${esc(c.cadence||"")}" placeholder="e.g. 2:30pm slot, 3× a week"></label><label class="f">Template<select id="c-tpl"><option value="">default per slot</option>${Object.values(S.templates).map(t=>`<option value="${esc(t.id)}" ${t.id===c.template_id?"selected":""}>${esc(t.name)} (${esc(FORMATS[t.format]||t.format)})</option>`).join("")}</select></label><label class="f">Active<select id="c-active"><option value="1" ${c.active!==false?"selected":""}>yes</option><option value="0" ${c.active===false?"selected":""}>no</option></select></label></div><div class="row"><button class="btn primary" id="c-save">Save campaign</button><button class="btn" id="c-cancel">Cancel</button>${c.name?`<button class="btn ghost" id="c-del">Delete</button>`:""}</div>`;
+    ed.scrollIntoView({behavior:"smooth",block:"nearest"});
+    $("c-cancel").onclick=()=>{ ed.hidden=true; };
+    $("c-save").onclick=async()=>{ const nc={...c, name:$("c-name").value.trim(), type:$("c-type").value, start:$("c-start").value, end:$("c-end").value, instruction:$("c-instr").value.trim(), cadence:$("c-cad").value.trim(), template_id:$("c-tpl").value, active:$("c-active").value==="1", updated_at:new Date().toISOString(), updated_by:who()}; if(!nc.name||!nc.start||!nc.end||nc.end<nc.start){ toast("Give it a name and a valid date range."); return; } const items=(S.camps?.items||[]).filter(x=>x.id!==nc.id).concat([nc]); try{ await DB.doc("schedule/campaigns").set({items, updated_at:new Date().toISOString()}); ed.hidden=true; toast("Campaign saved."); logEvent(`saved campaign "${nc.name}" (${nc.start} → ${nc.end})`);}catch(e){ toast("Couldn't save."); } };
+    $("c-del")?.addEventListener("click", async()=>{ const items=(S.camps?.items||[]).filter(x=>x.id!==c.id); try{ await DB.doc("schedule/campaigns").set({items, updated_at:new Date().toISOString()}); ed.hidden=true; toast("Campaign removed."); logEvent(`removed campaign "${c.name}"`);}catch(e){ toast("Couldn't save."); } });
+  }
+  $("grid-edit").addEventListener("click", ()=>{
+    const ed=$("grid-editor"); if(!ed.hidden){ ed.hidden=true; return; } ed.hidden=false;
+    const g = JSON.parse(JSON.stringify(S.grid||{weekdays:{}}));
+    const tplOpts = f => `<option value="">default</option>`+Object.values(S.templates).filter(t=>t.format===f||!f).map(t=>`<option value="${esc(t.id)}">${esc(t.name)}</option>`).join("");
+    ed.innerHTML = WD.map(w=>{ const d=g.weekdays[w]||(g.weekdays[w]={pillar:"",slots:[]}); return `<div class="stack" data-w="${w}" style="border:1px solid var(--line);border-radius:10px;padding:10px"><div class="row"><b style="width:90px">${w}</b><input data-g="pillar" value="${esc(d.pillar||"")}" placeholder="pillar" style="flex:1;min-width:160px"><input data-g="week_b" value="${esc(d.week_b||"")}" placeholder="Week B note (even ISO weeks)" style="flex:2;min-width:200px"></div><div class="stack" data-slots>${(d.slots||[]).map(slotRow).join("")}</div><button class="btn sm" data-addslot>+ slot</button></div>`; }).join("") + `<div class="row"><button class="btn primary" id="grid-save">Save weekday plan</button><button class="btn" id="grid-cancel">Cancel</button></div>`;
+    function slotRow(s){ s=s||{time:"10:30",role:"finding",format:"carousel_4x5",template_id:"",theme:""}; return `<div class="slotrow"><input data-s="time" type="time" value="${esc(s.time)}"><select data-s="role">${Object.entries(ROLES).map(([k,v])=>`<option value="${k}" ${k===s.role?"selected":""}>${esc(v)}</option>`).join("")}</select><select data-s="format">${Object.entries(FORMATS).map(([k,v])=>`<option value="${k}" ${k===s.format?"selected":""}>${esc(v)}</option>`).join("")}</select><select data-s="template_id">${tplOpts(s.format)}</select><input data-s="theme" value="${esc(s.theme||"")}" placeholder="theme / angle (optional)"><button class="btn sm ghost" data-rm title="remove">✕</button></div>`; }
+    ed.querySelectorAll(".slotrow").forEach((r,i)=>{ const w=r.closest("[data-w]").dataset.w; const idx=[...r.parentNode.children].indexOf(r); const s=g.weekdays[w].slots[idx]; if(s) r.querySelector('[data-s="template_id"]').value=s.template_id||""; });
+    ed.addEventListener("click", ev=>{ if(ev.target.matches("[data-addslot]")){ const box=ev.target.previousElementSibling; box.insertAdjacentHTML("beforeend", slotRow()); } if(ev.target.matches("[data-rm]")) ev.target.closest(".slotrow").remove(); });
+    $("grid-cancel").onclick=()=>{ ed.hidden=true; };
+    $("grid-save").onclick=async()=>{ const ng={weekdays:{}, updated_at:new Date().toISOString(), updated_by:who()}; ed.querySelectorAll("[data-w]").forEach(b=>{ const w=b.dataset.w; ng.weekdays[w]={pillar:b.querySelector('[data-g="pillar"]').value.trim(), week_b:b.querySelector('[data-g="week_b"]').value.trim(), slots:[...b.querySelectorAll(".slotrow")].map((r,i)=>({n:i+1,time:r.querySelector('[data-s="time"]').value,role:r.querySelector('[data-s="role"]').value,format:r.querySelector('[data-s="format"]').value,template_id:r.querySelector('[data-s="template_id"]').value,theme:r.querySelector('[data-s="theme"]').value.trim()})).sort((a,b)=>a.time.localeCompare(b.time)).map((s,i)=>({...s,n:i+1}))}; }); try{ await DB.doc("schedule/grid").set(ng); ed.hidden=true; toast("Weekday plan saved — applies from the next overnight run."); logEvent("edited the weekday plan"); }catch(e){ toast("Couldn't save."); } };
+  });
+
+  /* ---------- templates ---------- */
+  function renderTemplates(){
+    const ts=Object.values(S.templates).sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||""));
+    $("tpls").innerHTML = ts.length ? ts.map(t=>`<div class="tpl">${t.preview?`<img src="${t.preview}" alt="">`:`<div class="ph">${t.status==="pending_mapping"?"waiting for the mapping run":t.status==="generating"?"drafting in Canva…":"no preview yet"}</div>`}<h3>${esc(t.name)}</h3><div class="row">${chip(t.status==="ready"?"approved":t.status==="error"?"failed":"draft", t.status==="ready"?"ready":t.status==="pending_mapping"?"mapping queued":t.status==="draft"?"draft · tidy in Canva":t.status==="generating"?"generating":t.status==="error"?"needs attention":t.status)}<span class="chip muted">${esc(FORMATS[t.format]||t.format)}</span></div><div class="meta">${(t.themes||[]).length?"themes: "+esc(t.themes.join(", ")):"any theme"}${t.slide_count?` · ${t.slide_count} pages`:""}</div>${t.message?`<div class="hint" style="color:${t.status==="error"?"var(--crit)":"var(--ink-2)"}">${esc(t.message)}</div>`:""}<div class="row">${t.canva_url?`<a class="btn sm" href="${esc(t.canva_url)}" target="_blank" rel="noopener">Open in Canva</a>`:""}${t.status!=="ready"&&t.status!=="pending_mapping"&&t.canva_design_id?`<button class="btn sm" data-map="${esc(t.id)}">Map text boxes</button>`:""}${t.status==="ready"?`<button class="btn sm" data-map="${esc(t.id)}">Re-map</button>`:""}<button class="btn sm ghost" data-del="${esc(t.id)}">Remove</button></div></div>`).join("") : `<div class="empty">No templates registered yet.</div>`;
+    $("tpls").querySelectorAll("[data-map]").forEach(b=>b.addEventListener("click", async()=>{ const t=S.templates[b.dataset.map]; try{ await DB.doc("templates/"+t.id).update({status:"pending_mapping", message:""}); await addRequest("map_template",{template_id:t.id}); toast("Mapping queued for the next hourly run."); logEvent(`asked to map template "${t.name}"`);}catch(e){ toast("Couldn't queue."); } }));
+    $("tpls").querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click", async()=>{ const t=S.templates[b.dataset.del]; if(!confirm(`Remove "${t.name}" from the dashboard? The Canva design itself is untouched.`)) return; try{ await DB.doc("templates/"+t.id).delete(); toast("Removed."); logEvent(`removed template "${t.name}"`);}catch(e){ toast("Couldn't remove."); } }));
+  }
+  $("t-add").addEventListener("click", async()=>{
+    const name=$("t-name").value.trim(), url=$("t-url").value.trim(), format=$("t-format").value; const m=url.match(/\/design\/(D[A-Za-z0-9_-]{10})/); if(!name||!m){ toast("Give it a name and a Canva design link (…/design/DAxxxxxxxxx/…)."); return; }
+    const id="t_"+uid(); const doc={id, name, format, canva_design_id:m[1], canva_url:url, themes:$("t-themes").value.split(",").map(s=>s.trim()).filter(Boolean), notes:$("t-notes").value.trim(), status:"pending_mapping", created_at:new Date().toISOString(), created_by:who()};
+    try{ await DB.doc("templates/"+id).set(doc); await addRequest("map_template",{template_id:id}); ["t-name","t-url","t-themes","t-notes"].forEach(i=>$(i).value=""); toast("Registered — the next hourly run maps its text boxes."); logEvent(`registered template "${name}"`);}catch(e){ toast("Couldn't save the template."); }
+  });
+  $("g-add").addEventListener("click", async()=>{
+    const name=$("g-name").value.trim(), brief=$("g-brief").value.trim(), format=$("g-format").value; if(!name||!brief){ toast("Give it a name and a brief."); return; }
+    const id="t_"+uid(); const doc={id, name, format, themes:[], status:"generating", brief, created_at:new Date().toISOString(), created_by:who()};
+    try{ await DB.doc("templates/"+id).set(doc); await addRequest("generate_template",{template_id:id, brief, format}); $("g-name").value=""; $("g-brief").value=""; toast("Requested — a draft appears here after the next hourly run."); logEvent(`asked for a new template "${name}"`);}catch(e){ toast("Couldn't save the request."); }
+  });
+
+  /* ---------- inspiration ---------- */
+  const PLATFORMS = {instagram:"Instagram", tiktok:"TikTok"};
+  const I_STATUS = {queued:["draft","queued"], analysing:["rendering","reading the post…"], building:["rendering","building in Canva…"], ready:["approved","template ready"], error:["failed","needs attention"]};
+  let staged = [];
+  function platformOf(url){ if(/(^|\.)instagram\.com/i.test(url)) return "instagram"; if(/(^|\.)tiktok\.com/i.test(url)) return "tiktok"; return ""; }
+  function guessFormat(url){ const p=platformOf(url); if(p==="tiktok") return "story_9x16"; if(/\/(reel|reels)\//i.test(url)) return "story_9x16"; if(/\/p\//i.test(url)) return "carousel_4x5"; return "carousel_4x5"; }
+  const isHex = v => /^#[0-9a-fA-F]{3,8}$/.test(String(v||"").trim());
+  function renderStaged(){
+    $("i-staged").innerHTML = staged.map((s,i)=>`<figure><img src="${s.data_uri}" alt="screenshot ${i+1}"><button type="button" data-unstage="${i}" aria-label="remove screenshot ${i+1}">×</button></figure>`).join("");
+    $("i-staged").querySelectorAll("[data-unstage]").forEach(b=>b.addEventListener("click",()=>{ staged.splice(+b.dataset.unstage,1); renderStaged(); }));
+  }
+  function watchShots(id, count){
+    for(let n=1;n<=count;n++){ const k=id+"_"+n; if(subs["sh:"+k]) continue; subs["sh:"+k] = DB.doc("inspo_shots/"+k).onSnapshot(snap=>{ if(snap.exists){ S.shots[k]=snap.data(); const img=document.querySelector(`[data-shot="${k}"]`); if(img){ img.src=snap.data().data_uri; img.hidden=false; img.nextElementSibling?.remove(); if(!img.dataset.lb){ img.dataset.lb="1"; img.addEventListener("click",()=>lightbox(img.src)); } } } else delete S.shots[k]; }, err=>console.warn("shot",k,err)); }
+  }
+  function readBlock(r){
+    if(!r) return "";
+    const parts=[];
+    if(r.summary) parts.push(`<div><h4>How it is built</h4>${esc(r.summary)}</div>`);
+    if(Array.isArray(r.structure)&&r.structure.length) parts.push(`<div><h4>Page by page</h4>${r.structure.map(p=>`<div class="pg"><b>${esc(p.n!=null?String(p.n):"·")}</b><span>${esc(p.name||"")}${p.holds?` — <span style="color:var(--ink-2)">${esc(p.holds)}</span>`:""}</span></div>`).join("")}</div>`);
+    if(Array.isArray(r.colour_map)&&r.colour_map.length) parts.push(`<div><h4>Their colour → ours</h4><div class="swatches">${r.colour_map.map(c=>`<span class="sw" title="${esc(c.where||"")}"><i style="background:${isHex(c.to)?esc(c.to.trim()):"var(--muted-bg)"}"></i><b>${esc(c.to||"")}</b> <span style="color:var(--ink-3)">${esc(c.from||"")}</span></span>`).join("")}</div></div>`);
+    if(r.type_scale) parts.push(`<div><h4>Type</h4>${esc(r.type_scale)}</div>`);
+    const cf=r.caption_formula;
+    if(cf) parts.push(`<div><h4>Caption &amp; hook formula</h4><ul>${["hook","shape","cta","emoji","length"].filter(k=>cf[k]).map(k=>`<li><b>${esc(k)}:</b> ${esc(cf[k])}</li>`).join("")}</ul></div>`);
+    if(Array.isArray(r.watch_outs)&&r.watch_outs.length) parts.push(`<div><h4>Left behind on purpose</h4><ul>${r.watch_outs.map(w=>`<li>${esc(w)}</li>`).join("")}</ul></div>`);
+    return parts.length ? `<div class="read">${parts.join("")}</div>` : "";
+  }
+  function renderInspo(){
+    const items=Object.values(S.inspo).sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||""));
+    $("i-count").textContent = items.length ? `${items.length} clone${items.length===1?"":"s"}` : "";
+    $("inspos").innerHTML = items.length ? items.map(inspoCard).join("") : `<div class="empty">Nothing cloned yet. Paste a link above and the next hourly run does the rest.</div>`;
+    items.forEach(it=>{ watchShots(it.id, it.shot_count||0); bindInspo(it); });
+  }
+  function inspoCard(it){
+    const n = it.shot_count||0;
+    const shots = n ? Array.from({length:n},(_,i)=>{ const k=it.id+"_"+(i+1); const s=S.shots[k]; return s ? `<img data-shot="${k}" src="${s.data_uri}" alt="screenshot ${i+1}">` : `<img data-shot="${k}" alt="" hidden><div class="ph">screenshot ${i+1}</div>`; }).join("") : `<div class="ph">no screenshots — the read is a guess from the link alone</div>`;
+    const tpl = it.template_id ? S.templates[it.template_id] : null;
+    const st = I_STATUS[it.status] || ["muted", it.status||"—"];
+    return `<article class="inspo ${esc(it.status||"")}" data-inspo="${esc(it.id)}"><div class="stripe"></div><div class="in">
+      <div class="inspo-head"><div><div class="t">${esc(PLATFORMS[it.platform]||it.platform||"link")} · ${esc(FORMATS[it.format]||it.format||"")} · asked by ${esc(it.by||"")} ${esc(fmt(it.created_at))}</div><h3>${esc(it.name||"(unnamed clone)")}</h3><div class="src"><a href="${esc(it.url)}" target="_blank" rel="noopener">${esc(it.url)}</a></div></div><div class="stack" style="justify-items:end;gap:4px">${chip(st[0], st[1])}${tpl?`<span class="hint">template: ${esc(tpl.name)}</span>`:""}</div></div>
+      <div class="shots">${shots}</div>
+      ${it.note?`<p class="hint" style="color:var(--ink-2)">You said: ${esc(it.note)}</p>`:""}
+      ${readBlock(it.read)}
+      ${it.message?`<div class="notice ${it.status==="error"?"":"good"}">${esc(it.message)}</div>`:""}
+      <div class="actions">
+        ${it.canva_url?`<a class="btn" href="${esc(it.canva_url)}" target="_blank" rel="noopener">Open in Canva</a>`:""}
+        ${tpl&&tpl.status==="ready"?`<button class="btn good" data-iact="use">Use it on a slot</button>`:""}
+        <button class="btn" data-iact="reclone">${it.status==="ready"?"Clone again":"Try again"}</button>
+        <button class="btn ghost" data-iact="remove">Remove</button>
+        <span class="hint" style="margin-left:auto">${it.status==="ready"?"Live in Templates — pick it on any post or weekday slot.":"The hourly run picks this up at half past."}</span>
+      </div>
+    </div></article>`;
+  }
+  function bindInspo(it){
+    const el=document.querySelector(`[data-inspo="${it.id}"]`); if(!el) return;
+    el.querySelectorAll(".shots img").forEach(img=>{ if(!img.hidden) img.addEventListener("click",()=>lightbox(img.src)); });
+    el.querySelector('[data-iact="use"]')?.addEventListener("click",()=>{ showTab("calendar"); toast(`"${S.templates[it.template_id]?.name||"The template"}" is selectable on any slot below.`); });
+    el.querySelector('[data-iact="reclone"]')?.addEventListener("click", async()=>{
+      try{ await DB.doc("inspo/"+it.id).update({status:"queued", message:"", read:null}); await addRequest("clone_style",{inspo_id:it.id}); toast("Queued again for the next hourly run."); logEvent(`asked to re-clone the style of ${it.url}`); }catch(e){ toast("Couldn't queue it."); }
+    });
+    el.querySelector('[data-iact="remove"]')?.addEventListener("click", async()=>{
+      if(!confirm(`Remove this clone from the dashboard?${it.template_id?" The template it made stays in Templates, and the Canva design is untouched.":""}`)) return;
+      try{ for(let i=1;i<=(it.shot_count||0);i++) await DB.doc("inspo_shots/"+it.id+"_"+i).delete().catch(()=>{}); await DB.doc("inspo/"+it.id).delete(); toast("Removed."); }catch(e){ toast("Couldn't remove it."); }
+    });
+  }
+  $("i-drop").addEventListener("click",()=>$("i-file").click());
+  $("i-drop").addEventListener("dragover",ev=>{ev.preventDefault();});
+  $("i-drop").addEventListener("drop",ev=>{ev.preventDefault(); stageFiles(ev.dataTransfer.files);});
+  $("i-file").addEventListener("change",()=>stageFiles($("i-file").files));
+  async function stageFiles(files){
+    for(const f of files){
+      if(!f.type.startsWith("image/")) continue;
+      if(staged.length>=6){ toast("Six screenshots is plenty."); break; }
+      try{ staged.push({name:f.name, data_uri:await shrink(f)}); }catch(e){ toast(`Couldn't read ${f.name}.`); }
+    }
+    $("i-file").value=""; renderStaged();
+  }
+  $("i-url").addEventListener("change",()=>{ const u=$("i-url").value.trim(); if(u && !$("i-format").value) $("i-format").value=""; });
+  $("i-add").addEventListener("click", async()=>{
+    const url=$("i-url").value.trim();
+    const platform=platformOf(url);
+    if(!url||!platform){ toast("Paste an Instagram or TikTok post link."); return; }
+    if(!staged.length && !confirm("No screenshots added.\n\nInstagram and TikTok block automated reads, so without a screenshot the run can only guess the layout from the link and your note. Clone anyway?")) return;
+    const id="i_"+uid();
+    const format=$("i-format").value || guessFormat(url);
+    const name=$("i-name").value.trim() || `${PLATFORMS[platform]} clone · ${nowSGT().date}`;
+    const doc={id, url, platform, format, name, note:$("i-note").value.trim(), status:"queued", shot_count:staged.length, read:null, template_id:null, canva_url:null, message:"", created_at:new Date().toISOString(), by:who()};
+    try{
+      for(let i=0;i<staged.length;i++) await DB.doc("inspo_shots/"+id+"_"+(i+1)).set({inspo_id:id, n:i+1, data_uri:staged[i].data_uri, at:new Date().toISOString()});
+      await DB.doc("inspo/"+id).set(doc);
+      await addRequest("clone_style",{inspo_id:id});
+      staged=[]; renderStaged(); ["i-url","i-name","i-note"].forEach(k=>$(k).value=""); $("i-format").value="";
+      toast("Queued — the next hourly run reads it and builds the template.");
+      logEvent(`asked to clone the style of ${url}`);
+    }catch(e){ toast(e?.code==="quota_exceeded" ? "The store is full — ask Claude to archive old days." : "Couldn't save the clone."); }
+  });
+
+  /* ---------- photos ---------- */
+  function renderPhotos(){
+    const ps=Object.values(S.photos).sort((a,b)=>(b.at||"").localeCompare(a.at||""));
+    $("photos").innerHTML = ps.map(p=>`<div class="photo"><img src="${p.data_uri}" alt="${esc(p.caption||"")}" data-lb><input data-cap="${esc(p.id)}" value="${esc(p.caption||"")}" placeholder="caption"><input data-tag="${esc(p.id)}" value="${esc((p.tags||[]).join(", "))}" placeholder="tags: class, teacher, event"><div class="row"><button class="btn sm" data-mkpost="${esc(p.id)}">Make a post</button><button class="btn sm ghost" data-rmp="${esc(p.id)}">✕</button></div></div>`).join("") || `<div class="empty" style="grid-column:1/-1">No photos yet.</div>`;
+    $("photos").querySelectorAll("[data-lb]").forEach(i=>i.addEventListener("click",()=>lightbox(i.src)));
+    $("photos").querySelectorAll("[data-cap],[data-tag]").forEach(i=>i.addEventListener("change", async()=>{ const id=i.dataset.cap||i.dataset.tag; const p=S.photos[id]; const caption=$("photos").querySelector(`[data-cap="${id}"]`).value; const tags=$("photos").querySelector(`[data-tag="${id}"]`).value.split(",").map(s=>s.trim()).filter(Boolean); try{ await DB.doc("photos/"+id).update({caption,tags}); }catch(e){ toast("Couldn't save."); } }));
+    $("photos").querySelectorAll("[data-rmp]").forEach(b=>b.addEventListener("click", async()=>{ if(!confirm("Remove this photo from the dashboard?")) return; try{ await DB.doc("photos/"+b.dataset.rmp).delete(); }catch(e){ toast("Couldn't remove."); } }));
+    $("photos").querySelectorAll("[data-mkpost]").forEach(b=>b.addEventListener("click", async()=>{ const p=S.photos[b.dataset.mkpost]; const note=prompt("What should the post say? (one line is enough)", p.caption||""); if(note===null) return; const fmtSel=prompt("Format: carousel_4x5, story_9x16 or square_1x1","square_1x1"); if(!fmtSel) return; const id=await addRequest("photo_post",{photo_id:p.id, note, format:fmtSel}); if(id){ toast("Queued — the next hourly run drafts a post around this photo."); logEvent(`asked for a post from a photo (${p.caption||p.id})`); } }));
+  }
+  $("drop").addEventListener("click",()=>$("file").click());
+  $("drop").addEventListener("dragover",ev=>{ev.preventDefault();});
+  $("drop").addEventListener("drop",ev=>{ev.preventDefault(); handleFiles(ev.dataTransfer.files);});
+  $("file").addEventListener("change",()=>handleFiles($("file").files));
+  async function handleFiles(files){
+    for(const f of files){ if(!f.type.startsWith("image/")) continue; try{ const uri=await shrink(f); const id="p_"+uid(); await DB.doc("photos/"+id).set({id, data_uri:uri, caption:f.name.replace(/\.[^.]+$/,""), tags:[], uploaded_by:who(), at:new Date().toISOString(), used_in:[]}); toast(`Added ${f.name}`); }catch(e){ toast(e?.code==="quota_exceeded"?"The store is full.":`Couldn't add ${f.name}.`); } }
+    $("file").value="";
+  }
+  function shrink(file){ return new Promise((res,rej)=>{ const img=new Image(); img.onload=()=>{ let w=img.width,h=img.height; const max=1080; if(w>max||h>max){ const r=Math.min(max/w,max/h); w=Math.round(w*r); h=Math.round(h*r);} const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(img,0,0,w,h); let q=0.82, out=c.toDataURL("image/jpeg",q); while(out.length>230000 && q>0.4){ q-=0.08; out=c.toDataURL("image/jpeg",q);} if(out.length>245000){ c.width=Math.round(w*.75); c.height=Math.round(h*.75); c.getContext("2d").drawImage(img,0,0,c.width,c.height); out=c.toDataURL("image/jpeg",0.7);} URL.revokeObjectURL(img.src); res(out); }; img.onerror=rej; img.src=URL.createObjectURL(file); }); }
+
+  /* ---------- settings ---------- */
+  function renderSettings(){
+    const st=S.settings||{}; const on=st.enabled===true;
+    $("sw").classList.toggle("on",on); $("sw").setAttribute("aria-checked",on); $("sw-wrap").classList.toggle("on",on);
+    $("sw-s").textContent = on ? "On — the overnight run researches and drafts every day at 03:00; the 07:00 run pings your phone; approvals here decide what goes out." : "Off — nothing is researched, drafted or posted. Requests (re-renders, template mapping) still run hourly.";
+    $("mode").value = st.mode||"review-only";
+    const t = st.targets||{instagram:true,facebook:false,tiktok:false,download:true};
+    $("targets").innerHTML = ["instagram","facebook","tiktok","download"].map(k=>`<label><input type="checkbox" data-st="${k}" ${t[k]?"checked":""}>${k==="download"?"download pack":k}</label>`).join("");
+    const conn = st.connections||{};
+    const cs = (k,label) => conn[k]?.connected ? `<span class="chip good">connected${conn[k].name?" · "+esc(conn[k].name):""}</span>` : `<span class="chip muted">not connected</span> <span class="hint">${label}</span>`;
+    $("ig-state").innerHTML = cs("instagram","paste IG_USER_ID and IG_ACCESS_TOKEN into the CONFIG doc");
+    $("fb-state").innerHTML = cs("facebook","same Meta token; add FB_PAGE_ID to CONFIG");
+    $("tt-state").innerHTML = cs("tiktok","needs a TikTok developer app; until then use the download pack");
+    const eg=S.eg?.posts||[]; $("eg-count").textContent = eg.length? `${eg.length} posts` : "";
+    $("eg").innerHTML = eg.length ? `<table><thead><tr><th>ID</th><th>Slot</th><th>Pillar</th><th>Cover title</th><th>Last used</th></tr></thead><tbody>${eg.map(p=>`<tr><td class="mono">${esc(p.id)}</td><td>${esc(p.slot)}</td><td>${esc(p.pillar)}</td><td><input data-eg="${esc(p.id)}" value="${esc(p.cover_title||"")}" style="width:100%"></td><td class="mono">${esc(p.used_on||"—")}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">Evergreen bank not loaded into the dashboard yet.</div>`;
+    $("eg").querySelectorAll("[data-eg]").forEach(i=>i.addEventListener("change", async()=>{ const posts=(S.eg.posts||[]).map(p=>p.id===i.dataset.eg?{...p,cover_title:i.value}:p); try{ await DB.doc("evergreen/bank").set({...S.eg, posts, updated_at:new Date().toISOString()}); toast("Evergreen post updated."); }catch(e){ toast("Couldn't save."); } }));
+  }
+  const flip = async ()=>{ const on = !(S.settings?.enabled===true); if(on && !confirm("Switch the pipeline on? From tonight the 03:00 run will research and draft posts every day. Nothing publishes without an approval here.")) return; try{ await DB.doc("settings/pipeline").set({...(S.settings||{}), enabled:on, updated_at:new Date().toISOString(), updated_by:who()}); toast(on?"Pipeline on.":"Pipeline paused."); logEvent(on?"switched the pipeline ON":"paused the pipeline"); }catch(e){ toast("Couldn't save."); } };
+  $("sw").addEventListener("click", flip); $("sw").addEventListener("keydown", ev=>{ if(ev.key===" "||ev.key==="Enter"){ ev.preventDefault(); flip(); } });
+  $("save-settings").addEventListener("click", async()=>{ const targets={}; $("targets").querySelectorAll("[data-st]").forEach(c=>targets[c.dataset.st]=c.checked); try{ await DB.doc("settings/pipeline").set({...(S.settings||{}), mode:$("mode").value, targets, updated_at:new Date().toISOString(), updated_by:who()}); toast("Settings saved."); logEvent(`saved settings (mode ${$("mode").value})`); }catch(e){ toast("Couldn't save."); } });
+
+  /* ---------- activity ---------- */
+  function renderActivity(){
+    const rs=Object.values(S.reqs).sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||"")).slice(0,40);
+    $("reqs").innerHTML = rs.length ? `<table><thead><tr><th>When</th><th>Request</th><th>By</th><th>Status</th><th>Result</th></tr></thead><tbody>${rs.map(r=>`<tr><td class="mono">${esc(fmt(r.created_at))}</td><td>${esc(r.type.replace(/_/g," "))}${r.post_id?` · ${esc(r.post_id)}`:""}${r.template_id?` · ${esc(S.templates[r.template_id]?.name||r.template_id)}`:""}${r.candidate?` · ${esc(r.candidate.headline||"")}`:""}</td><td>${esc(r.by||"")}</td><td>${chip(r.status==="done"?"published":r.status==="error"?"failed":r.status==="working"?"rendering":"draft", r.status)}</td><td class="hint">${esc(r.result||"")}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No requests yet.</div>`;
+    const ev=((S.log?.events)||[]).slice().reverse().slice(0,60);
+    $("log").innerHTML = ev.length ? ev.map(e=>`<div class="e"><b>${esc(fmt(e.at))}</b><span><b style="color:var(--ink-2)">${esc(e.by||"")}</b> ${esc(e.text)}</span></div>`).join("") : `<div class="empty">Nothing yet.</div>`;
+  }
+
+  /* ---------- connect ---------- */
+  function stamp(){ $("updated").textContent = "live · " + new Date().toLocaleTimeString("en-SG",{timeZone:SGT,hour:"2-digit",minute:"2-digit"}); }
+  async function connect(){
+    DB = await claude.use("db").catch(()=>null);
+    DL = await claude.use("downloads").catch(()=>null);
+    if(!DB){ $("updated").textContent="store unavailable in this view"; $("posts").innerHTML=`<div class="empty">This view can't reach the store. Open the page from claude.ai while signed in.</div>`; return; }
+    const cutoff = (()=>{ const d=new Date(nowSGT().date+"T00:00:00Z"); d.setUTCDate(d.getUTCDate()-60); return d.toISOString().slice(0,10); })();
+    const onErr = name => e => console.warn(name, e);
+    DB.doc("settings/pipeline").onSnapshot(s=>{ S.settings=s.exists?s.data():null; renderTiles(); if(S.tab==="settings") renderSettings(); if(S.tab==="queue") renderPosts(); stamp(); }, onErr("settings"));
+    DB.doc("schedule/grid").onSnapshot(s=>{ S.grid=s.exists?s.data():null; if(S.tab==="calendar") renderCalendar(); }, onErr("grid"));
+    DB.doc("schedule/campaigns").onSnapshot(s=>{ S.camps=s.exists?s.data():null; if(S.tab==="calendar") renderCalendar(); }, onErr("camps"));
+    DB.doc("evergreen/bank").onSnapshot(s=>{ S.eg=s.exists?s.data():null; if(S.tab==="settings") renderSettings(); }, onErr("eg"));
+    DB.doc("activity/"+nowSGT().date.slice(0,7)).onSnapshot(s=>{ S.log=s.exists?s.data():null; if(S.tab==="activity") renderActivity(); }, onErr("log"));
+    DB.collection("days").where("date",">=",cutoff).orderBy("date","desc").limit(70).onSnapshot(q=>{ S.days={}; q.docs.forEach(d=>S.days[d.id]=d.data()); renderDays(); renderPosts(); if(S.tab==="scrapes") renderScrapes(); stamp(); }, onErr("days"));
+    DB.collection("posts").where("date",">=",cutoff).orderBy("date","desc").limit(400).onSnapshot(q=>{ const changed = q.docChanges().map(c=>c.doc.id); S.posts={}; q.docs.forEach(d=>S.posts[d.id]=d.data()); renderTiles(); renderDays(); if(changed.some(id=>S.posts[id]?.date===S.sel) || !document.querySelector("[data-post]")) renderPosts(); stamp(); }, onErr("posts"));
+    DB.collection("templates").onSnapshot(q=>{ S.templates={}; q.docs.forEach(d=>S.templates[d.id]=d.data()); renderTiles(); if(S.tab==="templates") renderTemplates(); if(S.tab==="calendar") renderCalendar(); }, onErr("templates"));
+    DB.collection("inspo").limit(120).onSnapshot(q=>{ S.inspo={}; q.docs.forEach(d=>S.inspo[d.id]=d.data()); renderTiles(); if(S.tab==="inspo") renderInspo(); }, onErr("inspo"));
+    DB.collection("photos").limit(300).onSnapshot(q=>{ S.photos={}; q.docs.forEach(d=>S.photos[d.id]=d.data()); if(S.tab==="photos") renderPhotos(); }, onErr("photos"));
+    DB.collection("requests").orderBy("created_at","desc").limit(80).onSnapshot(q=>{ S.reqs={}; q.docs.forEach(d=>S.reqs[d.id]=d.data()); renderTiles(); if(S.tab==="activity") renderActivity(); }, onErr("requests"));
+  }
+  connect();
+})();
+</script>
